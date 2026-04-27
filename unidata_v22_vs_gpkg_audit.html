@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unidata v2.2 vs GPKG Audit</title>
+  <style>
+    :root {
+      --bg: #f3f5f9;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --text: #111827;
+      --accent-2: #2d6cdf;
+      --line: #e5eaf2;
+      --good-bg: #e8f8ef;
+      --good-text: #0f6a3b;
+      --warn-bg: #fff7df;
+      --warn-text: #8a5a00;
+      --bad-bg: #ffe9e9;
+      --bad-text: #9f1d1d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: radial-gradient(circle at top left, #eff4ff 0%, var(--bg) 42%, #eef3fb 100%);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1520px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .hero {
+      background: linear-gradient(135deg, #17386f 0%, #2457a8 55%, #3273dd 100%);
+      color: #fff;
+      border-radius: 14px;
+      padding: 24px 26px;
+      box-shadow: 0 10px 30px rgba(25, 52, 102, 0.26);
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      margin: 0 0 8px 0;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: 0.2px;
+    }
+    .hero p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 980px;
+      line-height: 1.45;
+    }
+    .hero-meta {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.88);
+      margin: 0 0 14px 0;
+      letter-spacing: 0.02em;
+    }
+    .hero-meta time {
+      font-weight: 600;
+      color: #fff;
+    }
+    .hero-summary {
+      margin: 0;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.22);
+    }
+    .hero-summary p + p {
+      margin-top: 10px;
+    }
+    .hero-summary strong {
+      color: #fff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    }
+    .kpi-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-size: 27px;
+      font-weight: 700;
+      line-height: 1.1;
+      color: #0f274d;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+      margin-bottom: 14px;
+    }
+    .panel-header {
+      padding: 14px 16px 8px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #173a73;
+    }
+    .panel-body { padding: 12px 16px 16px 16px; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .controls input {
+      padding: 9px 11px;
+      min-width: 280px;
+      border: 1px solid #cfd8e5;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+    }
+    .controls input:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.15);
+    }
+    .chip {
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid #d8dfeb;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f8fbff;
+    }
+    .table-wrap {
+      overflow: auto;
+      max-height: 68vh;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #fff;
+    }
+    th, td {
+      border-bottom: 1px solid #e7edf6;
+      padding: 9px 11px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    th {
+      position: sticky;
+      top: 0;
+      background: #183c75;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+      z-index: 2;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    tbody tr:nth-child(odd) td { background: #fcfdff; }
+    tbody tr:hover td { background: #eef4ff; }
+    .total-row td {
+      font-weight: 700;
+      background: #e7f7f3 !important;
+      border-top: 2px solid #3bb69d;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .metric-good { background: var(--good-bg) !important; color: var(--good-text); font-weight: 700; }
+    .metric-warn { background: var(--warn-bg) !important; color: var(--warn-text); font-weight: 700; }
+    .metric-bad { background: var(--bad-bg) !important; color: var(--bad-text); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>Unidata v2.2 vs GPKG Audit</h1>
+      <p class="hero-meta">Report generated: <time datetime="2026-04-27T14:25:16-07:00">2026-04-27 14:25:16 Pacific Daylight Time (UTC-0700)</time></p>
+      <div class="hero-summary">
+        <p><strong>What this is:</strong> A parcel-level audit that compares the Unidata target table (PostgreSQL) to the source GeoPackage layer, grouped by normalized city (<code style="background:rgba(0,0,0,.15);padding:2px 6px;border-radius:4px;">scity</code> / <code style="background:rgba(0,0,0,.15);padding:2px 6px;border-radius:4px;">city</code>). Row counts and completeness checks are computed when you run <code style="background:rgba(0,0,0,.15);padding:2px 6px;border-radius:4px;">audit_unidata_vs_gpkg.py</code>.</p>
+        <p><strong>How to read the table:</strong> <em>Row delta</em> is Unidata rows minus expected GPKG rows per city (negative ⇒ fewer parcels in Unidata than in the source for that city key). Columns ending in <em>_empty</em> count Unidata rows missing that attribute, using the rules in &ldquo;Column meanings&rdquo; below.</p>
+        <p>This HTML matches the exported CSV schema; regenerate both files together so timestamps stay in sync.</p>
+      </div>
+    </section>
+    <section class="grid">
+      <div class="kpi"><div class="kpi-label">Total Cities</div><div class="kpi-value" id="kpiCities">-</div></div>
+      <div class="kpi"><div class="kpi-label">Source Rows</div><div class="kpi-value" id="kpiSourceRows">-</div></div>
+      <div class="kpi"><div class="kpi-label">Target Rows</div><div class="kpi-value" id="kpiTargetRows">-</div></div>
+      <div class="kpi"><div class="kpi-label">Total Row Delta</div><div class="kpi-value" id="kpiDelta">-</div></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header"><h2>Row delta (net shortfall vs GPKG)</h2></div>
+      <div class="panel-body">
+        <p><code>row_delta</code> = <code>unidata_rows</code> − <code>expected_gpkg_rows</code> per city.
+        Negative means Unidata has fewer parcels than the GPKG layer for that city key; positive means Unidata has more.</p>
+        <p>The total row delta is the sum across cities: shortfalls (-8531) plus surpluses (+1017) = <strong>-7514</strong>.</p>
+        <p><strong>Fewer rows in Unidata than GPKG (negative row_delta)</strong> (25 cities)</p>
+        <div class="table-wrap"><table><thead><tr><th>city</th><th>unidata_rows</th><th>expected_gpkg_rows</th><th>row_delta</th></tr></thead><tbody><tr><td>SAN JOSE</td><td>254076</td><td>256945</td><td>-2869</td></tr><tr><td>DIABLO-RANGE</td><td>0</td><td>795</td><td>-795</td></tr><tr><td>MILPITAS</td><td>20372</td><td>21109</td><td>-737</td></tr><tr><td>SUNNYVALE</td><td>33868</td><td>34516</td><td>-648</td></tr><tr><td>MOUNTAIN VIEW</td><td>20302</td><td>20822</td><td>-520</td></tr><tr><td>GILROY</td><td>18063</td><td>18494</td><td>-431</td></tr><tr><td>SOUTH-SANTA-CLARA-VALLEY</td><td>0</td><td>391</td><td>-391</td></tr><tr><td>LLAGAS-UVAS</td><td>0</td><td>331</td><td>-331</td></tr><tr><td>LOS ALTOS HILLS</td><td>0</td><td>311</td><td>-311</td></tr><tr><td>PALO ALTO</td><td>21023</td><td>21264</td><td>-241</td></tr><tr><td>CAMPBELL</td><td>12755</td><td>12990</td><td>-235</td></tr><tr><td>LEXINGTON-HILLS</td><td>0</td><td>213</td><td>-213</td></tr><tr><td>SAN-JOSE</td><td>0</td><td>205</td><td>-205</td></tr><tr><td>CUPERTINO</td><td>17048</td><td>17242</td><td>-194</td></tr><tr><td>MORGAN HILL</td><td>17089</td><td>17228</td><td>-139</td></tr><tr><td>LEXINGTON HILLS</td><td>0</td><td>98</td><td>-98</td></tr><tr><td>SARATOGA</td><td>11740</td><td>11815</td><td>-75</td></tr><tr><td>WEST-SANTA-CLARA</td><td>0</td><td>44</td><td>-44</td></tr><tr><td>SANTA CLARA</td><td>30662</td><td>30677</td><td>-15</td></tr><tr><td>STANFORD</td><td>1094</td><td>1108</td><td>-14</td></tr><tr><td>MONTE SERENO</td><td>1226</td><td>1239</td><td>-13</td></tr><tr><td>EAST FOOTHILLS</td><td>19</td><td>26</td><td>-7</td></tr><tr><td>PORTOLA VALLEY</td><td>36</td><td>39</td><td>-3</td></tr><tr><td>ALUM ROCK</td><td>8</td><td>9</td><td>-1</td></tr><tr><td>FRUITDALE</td><td>0</td><td>1</td><td>-1</td></tr></tbody></table></div>
+        <p><strong>More rows in Unidata than GPKG (positive row_delta)</strong> (3 cities)</p>
+        <div class="table-wrap"><table><thead><tr><th>city</th><th>unidata_rows</th><th>expected_gpkg_rows</th><th>row_delta</th></tr></thead><tbody><tr><td>SAN RAMON</td><td>787</td><td>0</td><td>787</td></tr><tr><td>LOS ALTOS</td><td>15987</td><td>15781</td><td>206</td></tr><tr><td>LOS GATOS</td><td>15572</td><td>15548</td><td>24</td></tr></tbody></table></div>
+      </div>
+    </section>
+    
+    <div class="panel">
+      <div class="panel-header"><h2>Controls</h2></div>
+      <div class="panel-body">
+        <div class="controls">
+          <label for="cityFilter"><strong>Filter first column:</strong></label>
+          <input id="cityFilter" type="text" placeholder="Type to filter rows" onkeyup="filterCity()" />
+          <span class="chip">Click header to sort</span>
+          <span class="chip">Dynamic columns from CSV schema</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><h2>Column meanings</h2></div>
+      <div class="panel-body">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>city</code></td><td>Normalized city key used for grouping both datasets.</td></tr><tr><td><code>unidata_rows</code></td><td>Total rows found in the Unidata target table.</td></tr><tr><td><code>expected_gpkg_rows</code></td><td>Expected rows from the GPKG source table for this city.</td></tr><tr><td><code>row_delta</code></td><td>Difference: unidata_rows - expected_gpkg_rows (negative means missing in Unidata).</td></tr><tr><td><code>footprints_empty</code></td><td>Unidata rows where footprints is null or an empty varchar[] (no geometry strings).</td></tr><tr><td><code>building_area_empty</code></td><td>Unidata rows where building_area is null, blank, or zero (integer column; zero treated as empty).</td></tr><tr><td><code>fldzone_empty</code></td><td>Unidata rows where fldzone is null/blank.</td></tr><tr><td><code>alquist_fault_empty</code></td><td>Unidata rows where alquist_fault is null (boolean; FALSE counts as populated).</td></tr><tr><td><code>liquefaction_empty</code></td><td>Unidata rows where liquefaction is null (boolean; FALSE counts as populated).</td></tr><tr><td><code>landslide_empty</code></td><td>Unidata rows where landslide is null (boolean; FALSE counts as populated).</td></tr><tr><td><code>fhszsra_empty</code></td><td>Unidata rows where fhszsra is null or blank text (integer).</td></tr><tr><td><code>fhszlra_empty</code></td><td>Unidata rows where fhszlra is null or blank text (integer).</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><h2>Audit Table</h2></div>
+      <div class="panel-body">
+        <div class="table-wrap">
+          <table id="auditTable">
+            <thead><tr><th onclick="sortTable(0)" title="Click to sort">city</th><th onclick="sortTable(1)" title="Click to sort">unidata_rows</th><th onclick="sortTable(2)" title="Click to sort">expected_gpkg_rows</th><th onclick="sortTable(3)" title="Click to sort">row_delta</th><th onclick="sortTable(4)" title="Click to sort">footprints_empty</th><th onclick="sortTable(5)" title="Click to sort">building_area_empty</th><th onclick="sortTable(6)" title="Click to sort">fldzone_empty</th><th onclick="sortTable(7)" title="Click to sort">alquist_fault_empty</th><th onclick="sortTable(8)" title="Click to sort">liquefaction_empty</th><th onclick="sortTable(9)" title="Click to sort">landslide_empty</th><th onclick="sortTable(10)" title="Click to sort">fhszsra_empty</th><th onclick="sortTable(11)" title="Click to sort">fhszlra_empty</th></tr></thead>
+            <tbody>
+<tr class=''><td>ALUM ROCK</td><td>8</td><td>9</td><td>-1</td><td>3</td><td>8</td><td>0</td><td>0</td><td>0</td><td>0</td><td>8</td><td>0</td></tr><tr class=''><td>ALVISO</td><td>103</td><td>103</td><td>0</td><td>92</td><td>102</td><td>0</td><td>0</td><td>0</td><td>0</td><td>103</td><td>37</td></tr><tr class=''><td>BURBANK</td><td>10</td><td>10</td><td>0</td><td>2</td><td>9</td><td>0</td><td>0</td><td>0</td><td>0</td><td>10</td><td>0</td></tr><tr class=''><td>CAMBRIAN PARK</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td></tr><tr class=''><td>CAMPBELL</td><td>12755</td><td>12990</td><td>-235</td><td>878</td><td>593</td><td>0</td><td>0</td><td>0</td><td>0</td><td>12755</td><td>0</td></tr><tr class=''><td>COYOTE</td><td>9</td><td>9</td><td>0</td><td>1</td><td>3</td><td>0</td><td>0</td><td>0</td><td>0</td><td>9</td><td>0</td></tr><tr class=''><td>CUPERTINO</td><td>17048</td><td>17242</td><td>-194</td><td>469</td><td>987</td><td>0</td><td>0</td><td>0</td><td>0</td><td>16818</td><td>192</td></tr><tr class=''><td>DIABLO-RANGE</td><td>0</td><td>795</td><td>-795</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class=''><td>EAST FOOTHILLS</td><td>19</td><td>26</td><td>-7</td><td>17</td><td>19</td><td>0</td><td>0</td><td>0</td><td>0</td><td>18</td><td>0</td></tr><tr class=''><td>EAST PALO ALTO</td><td>2</td><td>2</td><td>0</td><td>2</td><td>2</td><td>0</td><td>0</td><td>0</td><td>0</td><td>2</td><td>0</td></tr><tr class=''><td>FREMONT</td><td>6</td><td>6</td><td>0</td><td>4</td><td>6</td><td>0</td><td>0</td><td>0</td><td>0</td><td>4</td><td>1</td></tr><tr class=''><td>FRUITDALE</td><td>0</td><td>1</td><td>-1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class=''><td>GILROY</td><td>18063</td><td>18494</td><td>-431</td><td>2713</td><td>2501</td><td>1</td><td>0</td><td>0</td><td>0</td><td>16468</td><td>1445</td></tr><tr class=''><td>HOLLISTER</td><td>21</td><td>21</td><td>0</td><td>3</td><td>21</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>21</td></tr><tr class=''><td>HY</td><td>12</td><td>12</td><td>0</td><td>10</td><td>12</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>12</td></tr><tr class=''><td>LEXINGTON HILLS</td><td>0</td><td>98</td><td>-98</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class=''><td>LEXINGTON-HILLS</td><td>0</td><td>213</td><td>-213</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class=''><td>LIVERMORE</td><td>37</td><td>37</td><td>0</td><td>24</td><td>37</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>37</td></tr><tr class=''><td>LLAGAS-UVAS</td><td>0</td><td>331</td><td>-331</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class=''><td>LOS ALTOS</td><td>15987</td><td>15781</td><td>206</td><td>701</td><td>874</td><td>0</td><td>0</td><td>0</td><td>0</td><td>15854</td><td>34</td></tr><tr class=''><td>LOS ALTOS HILLS</td><td>0</td><td>311</td><td>-311</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class=''><td>LOS GATOS</td><td>15572</td><td>15548</td><td>24</td><td>6554</td><td>2270</td><td>0</td><td>0</td><td>0</td><td>0</td><td>12336</td><td>3056</td></tr><tr class=''><td>LOYOLA</td><td>15</td><td>15</td><td>0</td><td>12</td><td>15</td><td>0</td><td>0</td><td>0</td><td>0</td><td>11</td><td>1</td></tr><tr class=''><td>MENLO PARK</td><td>3</td><td>3</td><td>0</td><td>1</td><td>3</td><td>0</td><td>0</td><td>0</td><td>0</td><td>3</td><td>0</td></tr><tr class=''><td>MILPITAS</td><td>20372</td><td>21109</td><td>-737</td><td>5238</td><td>1954</td><td>0</td><td>0</td><td>0</td><td>0</td><td>20248</td><td>40</td></tr><tr class=''><td>MONTE SERENO</td><td>1226</td><td>1239</td><td>-13</td><td>942</td><td>46</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1216</td><td>2</td></tr><tr class=''><td>MORGAN HILL</td><td>17089</td><td>17228</td><td>-139</td><td>2098</td><td>2722</td><td>0</td><td>0</td><td>0</td><td>0</td><td>14777</td><td>1880</td></tr><tr class=''><td>MOUNT HAMILTON</td><td>109</td><td>109</td><td>0</td><td>89</td><td>36</td><td>0</td><td>0</td><td>0</td><td>0</td><td>26</td><td>74</td></tr><tr class=''><td>MOUNTAIN VIEW</td><td>20302</td><td>20822</td><td>-520</td><td>760</td><td>1036</td><td>0</td><td>0</td><td>0</td><td>0</td><td>20302</td><td>2</td></tr><tr class=''><td>PALO ALTO</td><td>21023</td><td>21264</td><td>-241</td><td>429</td><td>1700</td><td>1</td><td>0</td><td>0</td><td>0</td><td>20978</td><td>1</td></tr><tr class=''><td>PORTOLA VALLEY</td><td>36</td><td>39</td><td>-3</td><td>10</td><td>6</td><td>0</td><td>0</td><td>0</td><td>0</td><td>34</td><td>0</td></tr><tr class=''><td>REDWOOD ESTATES</td><td>6</td><td>6</td><td>0</td><td>6</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>6</td></tr><tr class=''><td>SAN JOSE</td><td>254076</td><td>256945</td><td>-2869</td><td>7960</td><td>13372</td><td>1</td><td>0</td><td>0</td><td>0</td><td>251506</td><td>2032</td></tr><tr class=''><td>SAN MARTIN</td><td>2052</td><td>2052</td><td>0</td><td>509</td><td>660</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1815</td><td>175</td></tr><tr class=''><td>SAN RAMON</td><td>787</td><td>0</td><td>787</td><td>709</td><td>787</td><td>2</td><td>0</td><td>0</td><td>0</td><td>8</td><td>774</td></tr><tr class=''><td>SAN-JOSE</td><td>0</td><td>205</td><td>-205</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class=''><td>SANTA CLARA</td><td>30662</td><td>30677</td><td>-15</td><td>994</td><td>1638</td><td>0</td><td>0</td><td>0</td><td>0</td><td>30483</td><td>161</td></tr><tr class=''><td>SARATOGA</td><td>11740</td><td>11815</td><td>-75</td><td>4000</td><td>853</td><td>0</td><td>0</td><td>0</td><td>0</td><td>11387</td><td>284</td></tr><tr class=''><td>SOUTH-SANTA-CLARA-VALLEY</td><td>0</td><td>391</td><td>-391</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class=''><td>STANFORD</td><td>1094</td><td>1108</td><td>-14</td><td>73</td><td>181</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1093</td><td>0</td></tr><tr class=''><td>SUNNYVALE</td><td>33868</td><td>34516</td><td>-648</td><td>832</td><td>1366</td><td>0</td><td>0</td><td>0</td><td>0</td><td>33868</td><td>3</td></tr><tr class=''><td>WATSONVILLE</td><td>29</td><td>29</td><td>0</td><td>16</td><td>12</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>29</td></tr><tr class=''><td>WEST-SANTA-CLARA</td><td>0</td><td>44</td><td>-44</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr class='total-row'><td>TOTAL</td><td>494142</td><td>501656</td><td>-7514</td><td>36152</td><td>33833</td><td>5</td><td>0</td><td>0</td><td>0</td><td>482141</td><td>10299</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="hint">Tip: click any header to sort ascending/descending.</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const headers = ['city', 'unidata_rows', 'expected_gpkg_rows', 'row_delta', 'footprints_empty', 'building_area_empty', 'fldzone_empty', 'alquist_fault_empty', 'liquefaction_empty', 'landslide_empty', 'fhszsra_empty', 'fhszlra_empty'];
+    let sortDir = {};
+
+    function toSortableValue(v) {
+      const n = Number(v);
+      if (!Number.isNaN(n)) return n;
+      return v.toString().toLowerCase();
+    }
+
+    function sortTable(colIdx) {
+      const table = document.getElementById("auditTable");
+      const tbody = table.tBodies[0];
+      const rows = Array.from(tbody.rows);
+      sortDir[colIdx] = !sortDir[colIdx];
+      const dir = sortDir[colIdx] ? 1 : -1;
+
+      rows.sort((a, b) => {
+        const av = toSortableValue(a.cells[colIdx].innerText.trim());
+        const bv = toSortableValue(b.cells[colIdx].innerText.trim());
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      });
+
+      rows.forEach(r => tbody.appendChild(r));
+    }
+
+    function filterCity() {
+      const filter = document.getElementById("cityFilter").value.toLowerCase();
+      const table = document.getElementById("auditTable");
+      const rows = table.tBodies[0].rows;
+      for (let i = 0; i < rows.length; i++) {
+        const key = rows[i].cells[0].innerText.toLowerCase();
+        rows[i].style.display = key.includes(filter) ? "" : "none";
+      }
+    }
+
+    function colorizeMetrics() {
+      const table = document.getElementById("auditTable");
+      const rows = table.tBodies[0].rows;
+      const deltaIdx = headers.indexOf("row_delta");
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (deltaIdx >= 0) {
+          const d = Number(row.cells[deltaIdx].innerText);
+          if (!Number.isNaN(d)) {
+            if (Math.abs(d) <= 50) row.cells[deltaIdx].classList.add("metric-good");
+            else if (Math.abs(d) <= 500) row.cells[deltaIdx].classList.add("metric-warn");
+            else row.cells[deltaIdx].classList.add("metric-bad");
+          }
+        }
+      }
+    }
+
+    function numberFmt(v) {
+      const n = Number(v);
+      return Number.isNaN(n) ? "-" : n.toLocaleString("en-US");
+    }
+
+    function fillKpis() {
+      const rows = Array.from(document.getElementById("auditTable").tBodies[0].rows);
+      const dataRows = rows.filter(r => !r.classList.contains("total-row"));
+      const totalRow = rows.find(r => r.classList.contains("total-row"));
+      document.getElementById("kpiCities").innerText = numberFmt(dataRows.length);
+
+      if (!totalRow) return;
+      const sourceIdx = headers.indexOf("expected_gpkg_rows");
+      const targetIdx = headers.indexOf("unidata_rows");
+      const deltaIdx = headers.indexOf("row_delta");
+
+      if (sourceIdx >= 0) document.getElementById("kpiSourceRows").innerText = numberFmt(totalRow.cells[sourceIdx].innerText);
+      if (targetIdx >= 0) document.getElementById("kpiTargetRows").innerText = numberFmt(totalRow.cells[targetIdx].innerText);
+      if (deltaIdx >= 0) document.getElementById("kpiDelta").innerText = numberFmt(totalRow.cells[deltaIdx].innerText);
+    }
+
+    colorizeMetrics();
+    fillKpis();
+  </script>
+</body>
+</html>
