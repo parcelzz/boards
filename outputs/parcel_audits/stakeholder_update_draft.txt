@@ -1,0 +1,17 @@
+Task #2 completed: I documented duplicate parcel/address behavior and NULL parcel-number findings with concrete examples.
+
+Key result:
+- With NULL `parcelnumb` included in source baseline, row gap is `-7,514` (494,142 vs 501,656).
+- With NULL `parcelnumb` excluded from source baseline, row gap is `-43` (494,142 vs 494,185).
+- The change is `7,471` rows, which matches the NULL `parcelnumb` volume in source.
+
+Interpretation:
+- The large missing-count is primarily driven by NULL parcel-number records in source data, which appear mostly auxiliary/irregular and not baseline parcel inventory.
+- The investigated duplicate case `48461052 / 2388 MADDEN AVE` (12 records) is consistent with multi-part/apartment-style geometry rather than invalid overlap duplication.
+
+Artifacts:
+- Findings doc: `outputs/parcel_audits/task2_findings_null_parcel_and_duplicates.md`
+- Updated audit (exclude NULL baseline): `outputs/parcel_audits/unidata_v22_vs_gpkg_audit.csv` and `.html`
+- Comparison audit (include NULL baseline): `outputs/parcel_audits/unidata_v22_vs_gpkg_audit_include_null.csv` and `.html`
+
+Requesting feedback on whether to finalize the remaining `43`-row trace as a follow-up item.

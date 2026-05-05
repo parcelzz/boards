@@ -1,0 +1,11 @@
+column_name,data_type,udt_name,total_rows,present_count,missing_count,missing_pct,taxonomy,taxonomy_key,initial_handling_strategy,product_behavior_risk,product_impact,review_priority
+city,character varying,varchar,494142,494142,0,0.0,Core parcel fields,core_parcel,Must be complete and reliable.,Low,Low risk — core identifiers largely present.,P2
+created_at,timestamp without time zone,timestamp,494142,494142,0,0.0,Core parcel fields,core_parcel,Must be complete and reliable.,Low,Low risk — core identifiers largely present.,P2
+id,integer,int4,494142,494142,0,0.0,Core parcel fields,core_parcel,Must be complete and reliable.,Low,Low risk — core identifiers largely present.,P2
+lat,double precision,float8,494142,494142,0,0.0,Core parcel fields,core_parcel,Must be complete and reliable.,Low,Low risk — core identifiers largely present.,P2
+lon,double precision,float8,494142,494142,0,0.0,Core parcel fields,core_parcel,Must be complete and reliable.,Low,Low risk — core identifiers largely present.,P2
+parcel,character varying,varchar,494142,494142,0,0.0,Core parcel fields,core_parcel,Must be complete and reliable.,Low,Low risk — core identifiers largely present.,P2
+parcelnumb,character varying,varchar,494142,494142,0,0.0,Core parcel fields,core_parcel,Must be complete and reliable.,Low,Low risk — core identifiers largely present.,P2
+updated_at,timestamp without time zone,timestamp,494142,494142,0,0.0,Core parcel fields,core_parcel,Must be complete and reliable.,Low,Low risk — core identifiers largely present.,P2
+address,character varying,varchar,494142,492473,1669,0.3378,Core parcel fields,core_parcel,Must be complete and reliable.,Moderate,Low risk — core identifiers largely present.,P2
+scity,character varying,varchar,494142,492213,1929,0.3904,Core parcel fields,core_parcel,Must be complete and reliable.,Moderate,Low risk — core identifiers largely present.,P2

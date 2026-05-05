@@ -1,0 +1,7 @@
+column_name,data_type,udt_name,total_rows,present_count,missing_count,missing_pct,taxonomy,taxonomy_key,initial_handling_strategy,product_behavior_risk,product_impact,review_priority
+alquist_fault,boolean,bool,494142,494142,0,0.0,External join fields,external_join,Need to clarify the meaning of missing values.,Low,NULL/false semantics matter for hazard and compliance messaging.,P3
+landslide,boolean,bool,494142,494142,0,0.0,External join fields,external_join,Need to clarify the meaning of missing values.,Low,NULL/false semantics matter for hazard and compliance messaging.,P3
+liquefaction,boolean,bool,494142,494142,0,0.0,External join fields,external_join,Need to clarify the meaning of missing values.,Low,NULL/false semantics matter for hazard and compliance messaging.,P3
+fldzone,character varying,varchar,494142,494137,5,0.001,External join fields,external_join,Need to clarify the meaning of missing values.,Low,NULL/false semantics matter for hazard and compliance messaging.,P3
+fhszlra,integer,int4,494142,483843,10299,2.0842,External join fields,external_join,Need to clarify the meaning of missing values.,Low,NULL/false semantics matter for hazard and compliance messaging.,P3
+fhszsra,integer,int4,494142,12001,482141,97.5713,External join fields,external_join,Need to clarify the meaning of missing values.,High,NULL/false semantics matter for hazard and compliance messaging.,P1–P2

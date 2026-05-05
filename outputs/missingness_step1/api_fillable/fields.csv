@@ -1,0 +1,5 @@
+column_name,data_type,udt_name,total_rows,present_count,missing_count,missing_pct,taxonomy,taxonomy_key,initial_handling_strategy,product_behavior_risk,product_impact,review_priority
+h3,character varying,varchar,494142,494142,0,0.0,API-fillable fields,api_fillable,Evaluate cost and benefit.,Low,Backfill candidates — weigh vendor cost vs completeness uplift.,P3
+ready,boolean,bool,494142,494142,0,0.0,API-fillable fields,api_fillable,Evaluate cost and benefit.,Low,Backfill candidates — weigh vendor cost vs completeness uplift.,P3
+zoning,character varying,varchar,494142,493832,310,0.0627,API-fillable fields,api_fillable,Evaluate cost and benefit.,Low,Backfill candidates — weigh vendor cost vs completeness uplift.,P3
+yearbuilt,integer,int4,494142,472581,21561,4.3633,API-fillable fields,api_fillable,Evaluate cost and benefit.,Low,Backfill candidates — weigh vendor cost vs completeness uplift.,P3

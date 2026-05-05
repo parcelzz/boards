@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Step 1 — Field missingness classification</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #dbe3f0;
+      --core: #1d4ed8;
+      --foot: #0d9488;
+      --ext: #7c3aed;
+      --src: #e11d48;
+      --api: #ea580c;
+      --shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(180deg, #dfe7f4 0%, var(--bg) 140px);
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    header.hero {
+      background: linear-gradient(118deg, #0f172a 0%, #1e3a5f 42%, #2563eb 100%);
+      color: #fff;
+      padding: 32px 28px 36px;
+      box-shadow: var(--shadow);
+    }
+    header.hero h1 { margin: 0 0 10px; font-size: clamp(1.35rem, 2.5vw, 1.75rem); font-weight: 700; letter-spacing: -0.02em; }
+    header.hero p { margin: 0 0 10px; opacity: 0.94; max-width: 920px; }
+    header.hero code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.88em;
+      background: rgba(255,255,255,.14);
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: #e2e8ff;
+    }
+    header.hero time { font-size: 13px; opacity: 0.85; }
+    .jump {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 14px 28px;
+      background: rgba(255,255,255,.55);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      justify-content: center;
+    }
+    .jump a {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e40af;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: 0 1px 2px rgba(15,23,42,.06);
+    }
+    .jump a:hover { background: #eff6ff; border-color: #93c5fd; }
+    main { max-width: 1280px; margin: 0 auto; padding: 24px 20px 56px; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    .panel h2 { margin: 0 0 14px; font-size: 1.15rem; color: #0f172a; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .kpi {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      box-shadow: 0 4px 14px rgba(15,23,42,.05);
+      border-left: 4px solid #64748b;
+    }
+    .kpi-rows { border-left-color: #2563eb; }
+    .kpi-fields { border-left-color: #6366f1; }
+    .kpi-alert { border-left-color: #e11d48; }
+    .kpi-core { border-left-color: var(--core); }
+    .kpi-fp { border-left-color: var(--foot); }
+    .kpi-ext { border-left-color: var(--ext); }
+    .kpi-src { border-left-color: var(--src); }
+    .kpi-api { border-left-color: var(--api); }
+    .kpi-val { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #0f172a; }
+    .kpi-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: 4px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: middle; }
+    thead th {
+      background: linear-gradient(180deg, #f1f5fd 0%, #e8eef9 100%);
+      font-weight: 700;
+      color: #334155;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    tbody tr:hover { background: #f8fafc; }
+    .stripe tbody tr:nth-child(even) { background: #fafbfd; }
+    .stripe tbody tr:nth-child(even):hover { background: #f1f5f9; }
+
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.small { font-size: 12px; color: #475569; max-width: 220px; }
+    code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12px;
+      background: #eef2ff;
+      color: #312e81;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .type-tag {
+      font-size: 11px;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .miss-n { color: #b45309; font-weight: 600; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+    }
+    .badge-core { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+    .badge-footprint { background: #ccfbf1; color: #0f766e; border: 1px solid #5eead4; }
+    .badge-external { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+    .badge-source { background: #ffe4e6; color: #9f1239; border: 1px solid #fda4af; }
+    .badge-api { background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+
+    .risk {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: .03em;
+    }
+    .risk-high { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .risk-mod { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .risk-low { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+    .prio {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .prio-hot { background: #fecaca; color: #7f1d1d; }
+    .prio-warm { background: #fde68a; color: #78350f; }
+    .prio-cool { background: #e2e8f0; color: #334155; }
+
+    .miss-cell { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    .bar-track {
+      flex: 1;
+      min-width: 72px;
+      max-width: 140px;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill { display: block; height: 100%; border-radius: 999px; }
+    .miss-pct { font-weight: 700; font-size: 12px; min-width: 52px; text-align: right; }
+    .miss-low { color: #15803d; }
+    .miss-mid { color: #b45309; }
+    .miss-high { color: #dc2626; }
+
+    .tax-row td.strategy { font-weight: 500; color: #334155; background: #fafbff; }
+    .tax-row.tax-core_parcel td:first-child { border-left: 4px solid var(--core); }
+    .tax-row.tax-footprint_related td:first-child { border-left: 4px solid var(--foot); }
+    .tax-row.tax-external_join td:first-child { border-left: 4px solid var(--ext); }
+    .tax-row.tax-source_missing td:first-child { border-left: 4px solid var(--src); }
+    .tax-row.tax-api_fillable td:first-child { border-left: 4px solid var(--api); }
+
+    .bucket-card {
+      background: var(--surface);
+      border-radius: 16px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .bucket-head {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .bucket-head h2 { margin: 10px 0 6px; font-size: 1.12rem; }
+    .bc-core_parcel .bucket-head { background: linear-gradient(90deg, #eff6ff, #fff); border-left: 5px solid var(--core); }
+    .bc-footprint_related .bucket-head { background: linear-gradient(90deg, #f0fdfa, #fff); border-left: 5px solid var(--foot); }
+    .bc-external_join .bucket-head { background: linear-gradient(90deg, #f5f3ff, #fff); border-left: 5px solid var(--ext); }
+    .bc-source_missing .bucket-head { background: linear-gradient(90deg, #fff1f2, #fff); border-left: 5px solid var(--src); }
+    .bc-api_fillable .bucket-head { background: linear-gradient(90deg, #fff7ed, #fff); border-left: 5px solid var(--api); }
+
+    .table-wrap { overflow-x: auto; padding: 0 0 12px; }
+    .checklist { list-style: none; padding: 0; margin: 0; }
+    .checklist li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: #f8fafc;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+    }
+    .ck-i {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ck-note { margin-top: 14px; margin-bottom: 0; }
+    .file-ref { font-size: 13px; margin: 0; }
+    .file-ref code { background: #f1f5f9; color: #334155; }
+    .section-h2 { margin: 28px 4px 12px; font-size: 1.2rem; color: #0f172a; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Next-stage work plan · Step 1: Classify field missingness</h1>
+    <p>Systematic missingness analysis for <code>public.unidata</code>: counts per column, taxonomy placement, behavior risk, and review priority — exported as CSV per bucket.</p>
+    <p><time datetime="2026-05-05T20:40:14Z">Generated 2026-05-05T20:40:14Z</time></p>
+  </header>
+  
+    <nav class="jump" aria-label="Section navigation">
+      <a href="#summary-table">Taxonomy</a>
+      <a href="#checklist">Checklist</a>
+      <a href="#overview">All fields</a>
+      <a href="#core_parcel">Core</a>
+      <a href="#footprint_related">Footprint</a>
+      <a href="#external_join">External</a>
+      <a href="#source_missing">Source-missing</a>
+      <a href="#api_fillable">API-fillable</a>
+    </nav>
+    
+  <main>
+    
+    <div class="kpi-grid">
+      <div class="kpi kpi-rows"><div class="kpi-val">494,142</div><div class="kpi-lbl">Table rows scanned</div></div>
+      <div class="kpi kpi-fields"><div class="kpi-val">23</div><div class="kpi-lbl">Columns analyzed</div></div>
+      <div class="kpi kpi-alert"><div class="kpi-val">1</div><div class="kpi-lbl">High behavior-risk fields</div></div>
+      <div class="kpi kpi-core"><div class="kpi-val">10</div><div class="kpi-lbl">Core parcel fields</div></div>
+      <div class="kpi kpi-fp"><div class="kpi-val">3</div><div class="kpi-lbl">Footprint / enrichment</div></div>
+      <div class="kpi kpi-ext"><div class="kpi-val">6</div><div class="kpi-lbl">External join fields</div></div>
+      <div class="kpi kpi-src"><div class="kpi-val">0</div><div class="kpi-lbl">Source-missing (100%)</div></div>
+      <div class="kpi kpi-api"><div class="kpi-val">4</div><div class="kpi-lbl">API-fillable fields</div></div>
+    </div>
+    
+    <section class="panel" id="summary-table">
+      <h2>Classification reference (your workshop table)</h2>
+      <p class="muted">Type · Description · Initial handling strategy — aligned with Step 1 instructions.</p>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead>
+            <tr><th>Type</th><th>Description</th><th>Initial handling strategy</th></tr>
+          </thead>
+          <tbody><tr class='tax-row tax-core_parcel'><td><span class='badge badge-core'>Core parcel fields</span></td><td>Parcel ID, geometry, address, etc.</td><td class='strategy'>Must be complete and reliable.</td></tr><tr class='tax-row tax-footprint_related'><td><span class='badge badge-footprint'>Footprint-related fields</span></td><td>Building footprint, footprint area, etc.</td><td class='strategy'>Known to be partially missing; treat as enrichment fields.</td></tr><tr class='tax-row tax-external_join'><td><span class='badge badge-external'>External join fields</span></td><td>building_error, external scores, derived attributes, etc.</td><td class='strategy'>Need to clarify the meaning of missing values.</td></tr><tr class='tax-row tax-source_missing'><td><span class='badge badge-source'>Source-missing fields</span></td><td>Fields not available in the original upstream data (no populated values in this snapshot).</td><td class='strategy'>Require product decision.</td></tr><tr class='tax-row tax-api_fillable'><td><span class='badge badge-api'>API-fillable fields</span></td><td>Fields that can potentially be filled from external APIs.</td><td class='strategy'>Evaluate cost and benefit.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="checklist">
+      <h2>To do (checklist)</h2>
+      
+    <ol class="checklist">
+      <li><span class="ck-i">1</span> Generate a field-level missingness table.</li>
+      <li><span class="ck-i">2</span> Classify each field into one of the above categories.</li>
+      <li><span class="ck-i">3</span> Mark which fields are core, enrichment (footprint-related), external, source-missing, or API-fillable.</li>
+      <li><span class="ck-i">4</span> Identify fields where missingness may affect product behavior (see <strong>Behavior risk</strong>).</li>
+      <li><span class="ck-i">5</span> Prioritize fields for product review (see <strong>Review priority</strong>).</li>
+    </ol>
+    <p class="muted ck-note">Artifacts: <code>field_missingness_all.csv</code> plus one CSV per bucket folder.</p>
+    
+    </section>
+
+    <section class="panel" id="overview">
+      <h2>All fields — sorted by missing %</h2>
+      <p class="muted">Full export: <code>outputs/missingness_step1/field_missingness_all.csv</code> (includes behavior risk &amp; handling columns).</p>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead>
+            <tr><th>Column</th><th>Taxonomy bucket</th><th>Missing %</th><th>Behavior risk</th><th>Review priority</th></tr>
+          </thead>
+          <tbody><tr><td><code>fhszsra</code></td><td><span class='badge badge-external'>External join fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="97.57% missing"><span class="bar-fill" style="width:97.6%;background:#dc2626"></span></div><span class="miss-pct miss-high">97.57%</span></div></td><td><span class='risk risk-high'>High</span></td><td><span class='prio prio-hot'>P1–P2</span></td></tr><tr><td><code>footprints</code></td><td><span class='badge badge-footprint'>Footprint-related fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="7.32% missing"><span class="bar-fill" style="width:7.3%;background:#d97706"></span></div><span class="miss-pct miss-mid">7.32%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2–P3</span></td></tr><tr><td><code>building_area</code></td><td><span class='badge badge-footprint'>Footprint-related fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="6.85% missing"><span class="bar-fill" style="width:6.8%;background:#d97706"></span></div><span class="miss-pct miss-mid">6.85%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2–P3</span></td></tr><tr><td><code>yearbuilt</code></td><td><span class='badge badge-api'>API-fillable fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="4.36% missing"><span class="bar-fill" style="width:4.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">4.36%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>sqft</code></td><td><span class='badge badge-footprint'>Footprint-related fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="4.28% missing"><span class="bar-fill" style="width:4.3%;background:#16a34a"></span></div><span class="miss-pct miss-low">4.28%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2–P3</span></td></tr><tr><td><code>fhszlra</code></td><td><span class='badge badge-external'>External join fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="2.08% missing"><span class="bar-fill" style="width:2.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">2.08%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>scity</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.39% missing"><span class="bar-fill" style="width:0.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.39%</span></div></td><td><span class='risk risk-mod'>Moderate</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>address</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.34% missing"><span class="bar-fill" style="width:0.3%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.34%</span></div></td><td><span class='risk risk-mod'>Moderate</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>zoning</code></td><td><span class='badge badge-api'>API-fillable fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.06% missing"><span class="bar-fill" style="width:0.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.06%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>fldzone</code></td><td><span class='badge badge-external'>External join fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>h3</code></td><td><span class='badge badge-api'>API-fillable fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>ready</code></td><td><span class='badge badge-api'>API-fillable fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>city</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>created_at</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>id</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>lat</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>lon</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>parcel</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>parcelnumb</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>updated_at</code></td><td><span class='badge badge-core'>Core parcel fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>alquist_fault</code></td><td><span class='badge badge-external'>External join fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>landslide</code></td><td><span class='badge badge-external'>External join fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>liquefaction</code></td><td><span class='badge badge-external'>External join fields</span></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td><span class='risk risk-low'>Low</span></td><td><span class='prio prio-cool'>P3</span></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <h2 class="section-h2">Detailed tables by taxonomy bucket</h2>
+    
+    <section class="bucket-card bc-core_parcel" id="core_parcel">
+      <div class="bucket-head">
+        <span class="badge badge-core">Core parcel fields</span>
+        <h2>Core parcel fields — field detail</h2>
+        <p class="muted">Parcel ID, geometry, address, etc.</p>
+        <p class="file-ref">Export: <code>outputs/missingness_step1/core_parcel/fields.csv</code></p>
+      </div>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead>
+            <tr>
+              <th>Column</th><th>PG type</th><th>Present</th><th>Missing</th><th>Missing %</th>
+              <th>Initial handling</th><th>Behavior risk</th><th>Product impact</th><th>Review priority</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><code>city</code></td><td><span class='type-tag'>character varying</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>created_at</code></td><td><span class='type-tag'>timestamp without time zone</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>id</code></td><td><span class='type-tag'>integer</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>lat</code></td><td><span class='type-tag'>double precision</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>lon</code></td><td><span class='type-tag'>double precision</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>parcel</code></td><td><span class='type-tag'>character varying</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>parcelnumb</code></td><td><span class='type-tag'>character varying</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>updated_at</code></td><td><span class='type-tag'>timestamp without time zone</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>address</code></td><td><span class='type-tag'>character varying</span></td><td class='num'>492,473</td><td class='num miss-n'>1,669</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.34% missing"><span class="bar-fill" style="width:0.3%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.34%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-mod'>Moderate</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr><tr><td><code>scity</code></td><td><span class='type-tag'>character varying</span></td><td class='num'>492,213</td><td class='num miss-n'>1,929</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.39% missing"><span class="bar-fill" style="width:0.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.39%</span></div></td><td class='small'>Must be complete and reliable.</td><td><span class='risk risk-mod'>Moderate</span></td><td class='small'>Low risk — core identifiers largely present.</td><td><span class='prio prio-warm'>P2</span></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+            
+    <section class="bucket-card bc-footprint_related" id="footprint_related">
+      <div class="bucket-head">
+        <span class="badge badge-footprint">Footprint-related fields</span>
+        <h2>Footprint-related fields — field detail</h2>
+        <p class="muted">Building footprint, footprint area, etc.</p>
+        <p class="file-ref">Export: <code>outputs/missingness_step1/footprint_related/fields.csv</code></p>
+      </div>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead>
+            <tr>
+              <th>Column</th><th>PG type</th><th>Present</th><th>Missing</th><th>Missing %</th>
+              <th>Initial handling</th><th>Behavior risk</th><th>Product impact</th><th>Review priority</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><code>sqft</code></td><td><span class='type-tag'>integer</span></td><td class='num'>473,006</td><td class='num miss-n'>21,136</td><td class='num'><div class="miss-cell"><div class="bar-track" title="4.28% missing"><span class="bar-fill" style="width:4.3%;background:#16a34a"></span></div><span class="miss-pct miss-low">4.28%</span></div></td><td class='small'>Known to be partially missing; treat as enrichment fields.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Expected partial coverage — affects enrichment UX, not parcel existence.</td><td><span class='prio prio-warm'>P2–P3</span></td></tr><tr><td><code>building_area</code></td><td><span class='type-tag'>integer</span></td><td class='num'>460,309</td><td class='num miss-n'>33,833</td><td class='num'><div class="miss-cell"><div class="bar-track" title="6.85% missing"><span class="bar-fill" style="width:6.8%;background:#d97706"></span></div><span class="miss-pct miss-mid">6.85%</span></div></td><td class='small'>Known to be partially missing; treat as enrichment fields.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Expected partial coverage — affects enrichment UX, not parcel existence.</td><td><span class='prio prio-warm'>P2–P3</span></td></tr><tr><td><code>footprints</code></td><td><span class='type-tag'>ARRAY</span></td><td class='num'>457,990</td><td class='num miss-n'>36,152</td><td class='num'><div class="miss-cell"><div class="bar-track" title="7.32% missing"><span class="bar-fill" style="width:7.3%;background:#d97706"></span></div><span class="miss-pct miss-mid">7.32%</span></div></td><td class='small'>Known to be partially missing; treat as enrichment fields.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Expected partial coverage — affects enrichment UX, not parcel existence.</td><td><span class='prio prio-warm'>P2–P3</span></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+            
+    <section class="bucket-card bc-external_join" id="external_join">
+      <div class="bucket-head">
+        <span class="badge badge-external">External join fields</span>
+        <h2>External join fields — field detail</h2>
+        <p class="muted">building_error, external scores, derived attributes, etc.</p>
+        <p class="file-ref">Export: <code>outputs/missingness_step1/external_join/fields.csv</code></p>
+      </div>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead>
+            <tr>
+              <th>Column</th><th>PG type</th><th>Present</th><th>Missing</th><th>Missing %</th>
+              <th>Initial handling</th><th>Behavior risk</th><th>Product impact</th><th>Review priority</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><code>alquist_fault</code></td><td><span class='type-tag'>boolean</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Need to clarify the meaning of missing values.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>NULL/false semantics matter for hazard and compliance messaging.</td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>landslide</code></td><td><span class='type-tag'>boolean</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Need to clarify the meaning of missing values.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>NULL/false semantics matter for hazard and compliance messaging.</td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>liquefaction</code></td><td><span class='type-tag'>boolean</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Need to clarify the meaning of missing values.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>NULL/false semantics matter for hazard and compliance messaging.</td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>fldzone</code></td><td><span class='type-tag'>character varying</span></td><td class='num'>494,137</td><td class='num miss-n'>5</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Need to clarify the meaning of missing values.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>NULL/false semantics matter for hazard and compliance messaging.</td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>fhszlra</code></td><td><span class='type-tag'>integer</span></td><td class='num'>483,843</td><td class='num miss-n'>10,299</td><td class='num'><div class="miss-cell"><div class="bar-track" title="2.08% missing"><span class="bar-fill" style="width:2.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">2.08%</span></div></td><td class='small'>Need to clarify the meaning of missing values.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>NULL/false semantics matter for hazard and compliance messaging.</td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>fhszsra</code></td><td><span class='type-tag'>integer</span></td><td class='num'>12,001</td><td class='num miss-n'>482,141</td><td class='num'><div class="miss-cell"><div class="bar-track" title="97.57% missing"><span class="bar-fill" style="width:97.6%;background:#dc2626"></span></div><span class="miss-pct miss-high">97.57%</span></div></td><td class='small'>Need to clarify the meaning of missing values.</td><td><span class='risk risk-high'>High</span></td><td class='small'>NULL/false semantics matter for hazard and compliance messaging.</td><td><span class='prio prio-hot'>P1–P2</span></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+            
+    <section class="bucket-card bc-source_missing" id="source_missing">
+      <div class="bucket-head">
+        <span class="badge badge-source">Source-missing fields</span>
+        <h2>Source-missing fields — field detail</h2>
+        <p class="muted">Fields not available in the original upstream data (no populated values in this snapshot).</p>
+        <p class="file-ref">Export: <code>outputs/missingness_step1/source_missing/fields.csv</code></p>
+      </div>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead>
+            <tr>
+              <th>Column</th><th>PG type</th><th>Present</th><th>Missing</th><th>Missing %</th>
+              <th>Initial handling</th><th>Behavior risk</th><th>Product impact</th><th>Review priority</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="9">No columns in this bucket.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+            
+    <section class="bucket-card bc-api_fillable" id="api_fillable">
+      <div class="bucket-head">
+        <span class="badge badge-api">API-fillable fields</span>
+        <h2>API-fillable fields — field detail</h2>
+        <p class="muted">Fields that can potentially be filled from external APIs.</p>
+        <p class="file-ref">Export: <code>outputs/missingness_step1/api_fillable/fields.csv</code></p>
+      </div>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead>
+            <tr>
+              <th>Column</th><th>PG type</th><th>Present</th><th>Missing</th><th>Missing %</th>
+              <th>Initial handling</th><th>Behavior risk</th><th>Product impact</th><th>Review priority</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><code>h3</code></td><td><span class='type-tag'>character varying</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Evaluate cost and benefit.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Backfill candidates — weigh vendor cost vs completeness uplift.</td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>ready</code></td><td><span class='type-tag'>boolean</span></td><td class='num'>494,142</td><td class='num miss-n'>0</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='small'>Evaluate cost and benefit.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Backfill candidates — weigh vendor cost vs completeness uplift.</td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>zoning</code></td><td><span class='type-tag'>character varying</span></td><td class='num'>493,832</td><td class='num miss-n'>310</td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.06% missing"><span class="bar-fill" style="width:0.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.06%</span></div></td><td class='small'>Evaluate cost and benefit.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Backfill candidates — weigh vendor cost vs completeness uplift.</td><td><span class='prio prio-cool'>P3</span></td></tr><tr><td><code>yearbuilt</code></td><td><span class='type-tag'>integer</span></td><td class='num'>472,581</td><td class='num miss-n'>21,561</td><td class='num'><div class="miss-cell"><div class="bar-track" title="4.36% missing"><span class="bar-fill" style="width:4.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">4.36%</span></div></td><td class='small'>Evaluate cost and benefit.</td><td><span class='risk risk-low'>Low</span></td><td class='small'>Backfill candidates — weigh vendor cost vs completeness uplift.</td><td><span class='prio prio-cool'>P3</span></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+            
+  </main>
+</body>
+</html>

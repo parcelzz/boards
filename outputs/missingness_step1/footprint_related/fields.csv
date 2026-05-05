@@ -1,0 +1,4 @@
+column_name,data_type,udt_name,total_rows,present_count,missing_count,missing_pct,taxonomy,taxonomy_key,initial_handling_strategy,product_behavior_risk,product_impact,review_priority
+sqft,integer,int4,494142,473006,21136,4.2773,Footprint-related fields,footprint_related,Known to be partially missing; treat as enrichment fields.,Low,"Expected partial coverage — affects enrichment UX, not parcel existence.",P2–P3
+building_area,integer,int4,494142,460309,33833,6.8468,Footprint-related fields,footprint_related,Known to be partially missing; treat as enrichment fields.,Low,"Expected partial coverage — affects enrichment UX, not parcel existence.",P2–P3
+footprints,ARRAY,_varchar,494142,457990,36152,7.3161,Footprint-related fields,footprint_related,Known to be partially missing; treat as enrichment fields.,Low,"Expected partial coverage — affects enrichment UX, not parcel existence.",P2–P3
