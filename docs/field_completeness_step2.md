@@ -33,4 +33,4 @@ Optional flags: `--grid-multiplier`, `--min-cell-rows`, `--min-city-rows`, `--ma
 
 ## Related workshop doc
 
-Use `docs/product_field_review_template.md` (Step 4) together with these CSV/HTML outputs when assigning P0–P3 priorities.
+Use `docs/product_field_review_template.md` (Step 4) together with these CSV/HTML outputs when assigning P0–P3 priorities. Run **Step 3** (`docs/field_semantics_step3.md`) to lock NULL vs FALSE vs zero semantics before final priorities.

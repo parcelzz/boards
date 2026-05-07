@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Step 3 — Field semantics audit</title>
+  <style>
+    :root {
+      /* Professional neutrals + single accent (corporate / analytics) */
+      --surface: #ffffff;
+      --surface-muted: #f9fafb;
+      --surface-row: #f8fafc;
+      --bg-page: #eef1f5;
+      --bg-grad-top: #e4e9f0;
+      --text-primary: #111827;
+      --text-body: #374151;
+      --text-muted: #6b7280;
+      --text-on-dark: #f3f4f6;
+      --text-on-dark-muted: rgba(243, 244, 246, 0.88);
+      --border: #e5e7eb;
+      --border-strong: #d1d5db;
+      --accent: #0c4a6e;
+      --accent-bright: #0369a1;
+      --accent-soft: #e0f2fe;
+      --kpi-neutral: #64748b;
+      --kpi-fields: #0369a1;
+      --kpi-alert: #b91c1c;
+      --code-bg: #f1f5f9;
+      --code-text: #0f172a;
+      --code-border: #e2e8f0;
+      --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
+      --shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.06);
+      --shadow-md: 0 4px 12px rgba(17, 24, 39, 0.07);
+      --shadow-lg: 0 12px 32px rgba(17, 24, 39, 0.09);
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-pill: 999px;
+      --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+      --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background: linear-gradient(180deg, var(--bg-grad-top) 0%, var(--bg-page) 18rem, var(--bg-page) 100%);
+      color: var(--text-body);
+      line-height: 1.6;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+    header.hero {
+      background: linear-gradient(155deg, #0b1220 0%, #152232 38%, #0c4a6e 92%);
+      color: var(--text-on-dark);
+      padding: 2.25rem 2rem 2.5rem;
+      box-shadow: var(--shadow-lg);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    header.hero h1 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+      line-height: 1.25;
+    }
+    header.hero p {
+      margin: 0 0 0.65rem;
+      max-width: 46rem;
+      color: var(--text-on-dark-muted);
+      font-size: 0.96875rem;
+    }
+    header.hero strong { color: #ffffff; font-weight: 600; }
+    header.hero code {
+      font-family: var(--font-mono);
+      font-size: 0.84em;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.11);
+      color: #f8fafc;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      letter-spacing: 0.01em;
+    }
+    header.hero time {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: rgba(226, 232, 240, 0.75);
+      font-variant-numeric: tabular-nums;
+    }
+    .jump {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      padding: 0.875rem 1.5rem;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .jump a {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-pill);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xs);
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .jump a:hover {
+      background: var(--accent-soft);
+      border-color: #7dd3fc;
+      color: #075985;
+    }
+    .jump a:focus-visible {
+      outline: 2px solid var(--accent-bright);
+      outline-offset: 2px;
+    }
+    main { max-width: 78rem; margin: 0 auto; padding: 1.75rem 1.25rem 3.5rem; }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 1.625rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .panel h2 {
+      margin: 0 0 0.875rem;
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.015em;
+    }
+    .muted { color: var(--text-muted); font-size: 0.875rem; line-height: 1.6; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .kpi {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      padding: 1.125rem 1.25rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xs);
+      border-left: 4px solid var(--kpi-neutral);
+    }
+    .kpi-fields { border-left-color: var(--kpi-fields); }
+    .kpi-alert { border-left-color: var(--kpi-alert); }
+    .kpi-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .kpi-lbl {
+      font-size: 0.6875rem;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-top: 0.375rem;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    .stripe td { color: var(--text-body); }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 0.7rem 0.85rem;
+      text-align: left;
+      vertical-align: middle;
+    }
+    thead th {
+      background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      border-bottom: 2px solid var(--border-strong);
+    }
+    thead th.num { text-align: right; }
+    tbody th[scope="row"] {
+      background: var(--surface-muted);
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: left;
+      border-right: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    tbody tr { transition: background 0.1s ease; }
+    tbody tr:hover { background: #f3f8fb; }
+    .stripe tbody tr:nth-child(even) { background: var(--surface-row); }
+    .stripe tbody tr:nth-child(even):hover { background: #eef5f9; }
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-body);
+    }
+    td.small {
+      font-size: 0.8125rem;
+      color: var(--text-body);
+      max-width: 22rem;
+      line-height: 1.55;
+      vertical-align: top;
+    }
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.78em;
+      font-weight: 500;
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 0.15rem 0.45rem;
+      border-radius: 5px;
+      border: 1px solid var(--code-border);
+    }
+    .table-wrap { overflow-x: auto; margin: 0.5rem 0 0; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface); }
+    .table-wrap.tall {
+      max-height: 75vh;
+      overflow: auto;
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-xs);
+    }
+    .table-wrap.tall thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 1px 0 var(--border-strong);
+    }
+    .table-wrap.tall table { margin: 0; }
+    .checklist { list-style: none; padding: 0; margin: 0; }
+    .checklist li {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      padding: 0.8rem 1rem;
+      margin-bottom: 0.5rem;
+      background: var(--surface-muted);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      color: var(--text-body);
+      line-height: 1.55;
+    }
+    .ck-i {
+      flex-shrink: 0;
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 7px;
+      background: linear-gradient(145deg, var(--accent-bright) 0%, var(--accent) 100%);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.8125rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(12, 74, 110, 0.35);
+    }
+    .ck-note { margin-top: 1rem; margin-bottom: 0; }
+    .file-ref { font-size: 0.8125rem; margin: 1rem 0 0; color: var(--text-muted); }
+    .file-ref code {
+      background: #eef2f6;
+      color: #334155;
+      border-color: #dbe1e8;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Next-stage work plan · Step 3: Field semantics audit</h1>
+    <p><strong>What this is:</strong> Measures <strong>how values are stored</strong> (NULL vs <code>FALSE</code> vs <code>TRUE</code>, NULL vs numeric <code>0</code>, blanks, empty arrays), not only “how many cells look empty.” Use with Step 2 completeness QA and Step 4 product review.</p>
+    <p><strong>Use it with:</strong> Step 2 “zero semantics” notes and <code>docs/product_field_review_template.md</code> — Step 3 supplies counts; Step 4 records product decisions.</p>
+    <p><time datetime="2026-05-07T22:43:57Z">Generated 2026-05-07T22:43:57Z</time></p>
+  </header>
+  <nav class="jump" aria-label="Section navigation">
+    <a href="#about">Overview</a>
+    <a href="#kpis">Snapshot</a>
+    <a href="#hazard">Hazard crosstab</a>
+    <a href="#columns">Per-column table</a>
+  </nav>
+  <main>
+    <section id="kpis">    <div class="kpi-grid">
+      <div class="kpi kpi-fields"><div class="kpi-val">23</div><div class="kpi-lbl">Columns analyzed</div></div>
+      <div class="kpi kpi-alert"><div class="kpi-val">5</div><div class="kpi-lbl">Auto-flagged for Step 4</div></div>
+    </div></section>
+    <section class="panel" id="about">
+      <h2>How this report fits the plan</h2>
+      <p class="muted">Same layout conventions as Step 2 (<code>field_completeness_report_step2.py</code>). Each step adds evidence before the workshop.</p>
+    <ol class="checklist">
+      <li><span class="ck-i">1</span><strong>Step 1 — Missingness.</strong> Classifies columns (taxonomy) and percent missing — same rules as <code>outputs/missingness_step1/</code>.</li>
+      <li><span class="ck-i">2</span><strong>Step 2 — Completeness QA.</strong> Maps, city slices, samples; surfaces “zero semantics” questions.</li>
+      <li><span class="ck-i">3</span><strong>Step 3 — Semantics (this report).</strong> Counts how values are stored (NULL vs literals, zeros, blanks) for Step 4 decisions.</li>
+      <li><span class="ck-i">4</span><strong>Step 4 — Product review.</strong> Use <code>docs/product_field_review_template.md</code> with the CSV/HTML from Steps 1–3.</li>
+    </ol>
+    <p class="muted ck-note"><strong>Hazard crosstab:</strong> each column shows <code>N</code> (NULL), <code>T</code>, or <code>F</code> per field; <strong>rows</strong> is parcel count. <strong>Main table:</strong> distribution snapshot depends on PostgreSQL type (boolean vs numeric vs text).</p>
+    </section>
+    <section class="panel" id="hazard">
+      <h2>Hazard booleans — joint patterns</h2>
+      <p class="muted">Each row is one stored combination for <code>liquefaction</code>, <code>landslide</code>, and <code>alquist_fault</code>. The <strong>rows</strong> column counts parcels in that combination.</p>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead><tr><th>liquefaction</th><th>landslide</th><th>alquist_fault</th><th class="num">rows</th></tr></thead>
+          <tbody><tr><td><code>F</code></td><td><code>F</code></td><td><code>F</code></td><td class='num'>494,142</td></tr></tbody>
+        </table>
+      </div>
+      <p class="muted file-ref">Export: <code>outputs/missingness_step3/hazard_boolean_crosstab.csv</code></p>
+    </section>
+    <section class="panel" id="columns">
+      <h2>Per-column semantics</h2>
+      <p class="muted">One row per column. Distribution snapshot depends on PostgreSQL type (boolean vs numeric vs text vs array).</p>
+      <div class="table-wrap">
+        <table class="stripe">
+          <thead><tr><th scope="col">Column header</th><th scope="col">Meaning</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">Column</th><td>PostgreSQL column name on <code>public.unidata</code>.</td></tr>
+          <tr><th scope="row">PG type</th><td>Physical type; drives which counts appear in the snapshot.</td></tr>
+          <tr><th scope="row">Taxonomy</th><td>Step 1 category (core parcel, external join, API-fillable, etc.).</td></tr>
+          <tr><th scope="row">Step 1 missing %</th><td>Percent failing Step 1 “present” rules (e.g. <code>0</code> counts as missing for selected numerics).</td></tr>
+          <tr><th scope="row">Distribution snapshot</th><td>T/F/NULL, zero/positive/negative, blanks, or empty arrays — whichever applies.</td></tr>
+          <tr><th scope="row">Auto verdict</th><td>Heuristic flag; confirm in Step 4.</td></tr>
+          <tr><th scope="row">Notes for Step 4</th><td>Workshop talking points (docs, UI, API contracts).</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap tall">
+        <table class="stripe">
+          <thead>
+            <tr>
+              <th>Column</th><th>PG type</th><th>Taxonomy</th><th class="num">Step 1 missing %</th>
+              <th>Distribution snapshot</th><th>Auto verdict</th><th>Notes for Step 4</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><code>id</code></td><td>integer</td><td>Core parcel fields</td><td class='num'>0.0</td><td class='small'>0=0 &amp;lt;0=0 &amp;gt;0=494,142 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>h3</code></td><td>character varying</td><td>API-fillable fields</td><td class='num'>0.0</td><td class='small'>blank=0 text=494,142 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>parcelnumb</code></td><td>character varying</td><td>Core parcel fields</td><td class='num'>0.0</td><td class='small'>blank=0 text=494,142 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>zoning</code></td><td>character varying</td><td>API-fillable fields</td><td class='num'>0.0627</td><td class='small'>blank=0 text=493,832 NULL=310</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>yearbuilt</code></td><td>integer</td><td>API-fillable fields</td><td class='num'>4.3633</td><td class='small'>0=0 &amp;lt;0=0 &amp;gt;0=472,581 NULL=21,561</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>address</code></td><td>character varying</td><td>Core parcel fields</td><td class='num'>0.3378</td><td class='small'>blank=0 text=492,473 NULL=1,669</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>city</code></td><td>character varying</td><td>Core parcel fields</td><td class='num'>0.0</td><td class='small'>blank=0 text=494,142 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>scity</code></td><td>character varying</td><td>Core parcel fields</td><td class='num'>0.3904</td><td class='small'>blank=0 text=492,213 NULL=1,929</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>ready</code></td><td>boolean</td><td>API-fillable fields</td><td class='num'>0.0</td><td class='small'>T=494,142 F=0 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>parcel</code></td><td>character varying</td><td>Core parcel fields</td><td class='num'>0.0</td><td class='small'>blank=0 text=494,142 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>footprints</code></td><td>ARRAY</td><td>Footprint-related fields</td><td class='num'>7.3161</td><td class='small'>∅arr=36,152 nonempty=457,990 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>lat</code></td><td>double precision</td><td>Core parcel fields</td><td class='num'>0.0</td><td class='small'>0=0 &amp;lt;0=0 &amp;gt;0=494,142 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>lon</code></td><td>double precision</td><td>Core parcel fields</td><td class='num'>0.0</td><td class='small'>0=0 &amp;lt;0=494,142 &amp;gt;0=0 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>sqft</code></td><td>integer</td><td>Footprint-related fields</td><td class='num'>4.2773</td><td class='small'>0=21,134 &amp;lt;0=0 &amp;gt;0=473,006 NULL=2</td><td class='small'>Review</td><td class='small'>Low Step-1 missing % but non-trivial zeros — spot-check whether zeros are valid.</td></tr><tr><td><code>building_area</code></td><td>integer</td><td>Footprint-related fields</td><td class='num'>6.8468</td><td class='small'>0=33,833 &amp;lt;0=0 &amp;gt;0=460,309 NULL=0</td><td class='small'>Review</td><td class='small'>Low Step-1 missing % but non-trivial zeros — spot-check whether zeros are valid.</td></tr><tr><td><code>fldzone</code></td><td>character varying</td><td>External join fields</td><td class='num'>0.001</td><td class='small'>blank=5 text=494,137 NULL=0</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>alquist_fault</code></td><td>boolean</td><td>External join fields</td><td class='num'>0.0</td><td class='small'>T=0 F=494,142 NULL=0</td><td class='small'>FALSE-dominated</td><td class='small'>Among non-NULL booleans, FALSE is 100.00% — verify domain meaning (unknown encoded as FALSE?).</td></tr><tr><td><code>liquefaction</code></td><td>boolean</td><td>External join fields</td><td class='num'>0.0</td><td class='small'>T=0 F=494,142 NULL=0</td><td class='small'>FALSE-dominated</td><td class='small'>Among non-NULL booleans, FALSE is 100.00% — verify domain meaning (unknown encoded as FALSE?).</td></tr><tr><td><code>landslide</code></td><td>boolean</td><td>External join fields</td><td class='num'>0.0</td><td class='small'>T=0 F=494,142 NULL=0</td><td class='small'>FALSE-dominated</td><td class='small'>Among non-NULL booleans, FALSE is 100.00% — verify domain meaning (unknown encoded as FALSE?).</td></tr><tr><td><code>fhszsra</code></td><td>integer</td><td>External join fields</td><td class='num'>97.5713</td><td class='small'>0=0 &amp;lt;0=0 &amp;gt;0=12,001 NULL=482,141</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>fhszlra</code></td><td>integer</td><td>External join fields</td><td class='num'>2.0842</td><td class='small'>0=0 &amp;lt;0=451,820 &amp;gt;0=32,023 NULL=10,299</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>created_at</code></td><td>timestamp without time zone</td><td>Core parcel fields</td><td class='num'>0.0</td><td class='small'>NULL=0 total=494,142</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr><tr><td><code>updated_at</code></td><td>timestamp without time zone</td><td>Core parcel fields</td><td class='num'>0.0</td><td class='small'>NULL=0 total=494,142</td><td class='small'>OK — no auto-flag</td><td class='small'>Review if this field is P0/P1 in Step 4.</td></tr></tbody>
+        </table>
+      </div>
+      <p class="muted file-ref">Export: <code>outputs/missingness_step3/semantics_by_column.csv</code></p>
+    </section>
+  </main>
+</body>
+</html>

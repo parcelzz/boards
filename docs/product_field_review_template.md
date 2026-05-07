@@ -13,7 +13,7 @@
 
 ## Checklist per field
 
-_Use one row per field (tie each row to your latest missingness / QA artifacts — generate Step 2 completeness HTML/CSV via `docs/field_completeness_step2.md`)._
+_Use one row per field (tie each row to your latest missingness / QA artifacts — Step 1 CSV/HTML, Step 2 completeness reports, and **Step 3** semantics: `docs/field_semantics_step3.md` / `outputs/missingness_step3/semantics_by_column.csv`)._
 
 | Field | Current suggested priority | Agreed priority | OK if unknown for MVP? (Y/N) | User-facing copy / behavior if unknown | Owner |
 |-------|---------------------------|-----------------|------------------------------|----------------------------------------|-------|

@@ -1,0 +1,24 @@
+column_name,data_type,udt_name,total_rows,taxonomy,missing_pct_step1,n_null,n_true,n_false,n_blank,n_nonempty,n_zero,n_negative,n_positive,n_empty_array,n_nonempty_array,zero_pct_of_nonnull,null_pct,false_pct_of_nonnull,recommended_verdict,notes_for_step4
+id,integer,int4,494142,Core parcel fields,0.0,0,,,,,0,0,494142,,,0.0,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+h3,character varying,varchar,494142,API-fillable fields,0.0,0,,,0,494142,,,,,,,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+parcelnumb,character varying,varchar,494142,Core parcel fields,0.0,0,,,0,494142,,,,,,,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+zoning,character varying,varchar,494142,API-fillable fields,0.0627,310,,,0,493832,,,,,,,0.0627,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+yearbuilt,integer,int4,494142,API-fillable fields,4.3633,21561,,,,,0,0,472581,,,0.0,4.3633,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+address,character varying,varchar,494142,Core parcel fields,0.3378,1669,,,0,492473,,,,,,,0.3378,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+city,character varying,varchar,494142,Core parcel fields,0.0,0,,,0,494142,,,,,,,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+scity,character varying,varchar,494142,Core parcel fields,0.3904,1929,,,0,492213,,,,,,,0.3904,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+ready,boolean,bool,494142,API-fillable fields,0.0,0,494142,0,,,,,,,,,0.0,0.0,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+parcel,character varying,varchar,494142,Core parcel fields,0.0,0,,,0,494142,,,,,,,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+footprints,ARRAY,_varchar,494142,Footprint-related fields,7.3161,0,,,,,,,,36152,457990,,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+lat,double precision,float8,494142,Core parcel fields,0.0,0,,,,,0,0,494142,,,0.0,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+lon,double precision,float8,494142,Core parcel fields,0.0,0,,,,,0,494142,0,,,0.0,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+sqft,integer,int4,494142,Footprint-related fields,4.2773,2,,,,,21134,0,473006,,,4.2769,0.0004,,Review,Low Step-1 missing % but non-trivial zeros — spot-check whether zeros are valid.
+building_area,integer,int4,494142,Footprint-related fields,6.8468,0,,,,,33833,0,460309,,,6.8468,0.0,,Review,Low Step-1 missing % but non-trivial zeros — spot-check whether zeros are valid.
+fldzone,character varying,varchar,494142,External join fields,0.001,0,,,5,494137,,,,,,,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+alquist_fault,boolean,bool,494142,External join fields,0.0,0,0,494142,,,,,,,,,0.0,100.0,FALSE-dominated,"Among non-NULL booleans, FALSE is 100.00% — verify domain meaning (unknown encoded as FALSE?)."
+liquefaction,boolean,bool,494142,External join fields,0.0,0,0,494142,,,,,,,,,0.0,100.0,FALSE-dominated,"Among non-NULL booleans, FALSE is 100.00% — verify domain meaning (unknown encoded as FALSE?)."
+landslide,boolean,bool,494142,External join fields,0.0,0,0,494142,,,,,,,,,0.0,100.0,FALSE-dominated,"Among non-NULL booleans, FALSE is 100.00% — verify domain meaning (unknown encoded as FALSE?)."
+fhszsra,integer,int4,494142,External join fields,97.5713,482141,,,,,0,0,12001,,,0.0,97.5713,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+fhszlra,integer,int4,494142,External join fields,2.0842,10299,,,,,0,451820,32023,,,0.0,2.0842,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+created_at,timestamp without time zone,timestamp,494142,Core parcel fields,0.0,0,,,,,,,,,,,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
+updated_at,timestamp without time zone,timestamp,494142,Core parcel fields,0.0,0,,,,,,,,,,,0.0,,OK — no auto-flag,Review if this field is P0/P1 in Step 4.
