@@ -1,0 +1,9 @@
+match_tier,field_name,matched_rows,n_unidata_missing,n_gpkg_has,n_recoverable
+pair,address,493744,1637,492107,0
+pair,scity,493744,1929,491815,0
+pair,yearbuilt,493744,21234,472510,0
+pair,zoning,493744,306,493438,0
+singleton,address,398,32,366,0
+singleton,scity,398,0,398,0
+singleton,yearbuilt,398,327,71,0
+singleton,zoning,398,4,394,0

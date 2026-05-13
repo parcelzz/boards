@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Backfill plan: missing Unidata columns from GPKG (excluding footprints)</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --line-strong: #cbd5e1;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 40px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 20px 64px;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      padding: 28px 28px 24px;
+      box-shadow: var(--shadow);
+    }
+    .report-header {
+      margin-bottom: 22px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .report-title {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .report-meta {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .report-meta time { color: inherit; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .table-wrap {
+      overflow-x: auto;
+      padding: 0;
+      margin: 0 -4px;
+      border-radius: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .table-wrap.missing-report-scroll { max-width: 100%; }
+    table.missing-cols {
+      width: max(100%, 720px);
+      min-width: 720px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table.missing-cols thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #475569;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line-strong);
+      white-space: nowrap;
+    }
+    table.missing-cols thead th.num { text-align: right; }
+    table.missing-cols tbody td {
+      padding: 13px 16px;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--line);
+      color: #1e293b;
+    }
+    table.missing-cols tbody tr:last-child td { border-bottom: none; }
+    table.missing-cols tbody tr:hover td { background: #f8fafc; }
+    table.missing-cols tbody tr:nth-child(even) td { background: #fcfcfd; }
+    table.missing-cols tbody tr:nth-child(even):hover td { background: #f1f5f9; }
+    table.missing-cols th:first-child,
+    table.missing-cols td:first-child {
+      min-width: 11rem;
+      white-space: nowrap;
+    }
+    table.missing-cols th:nth-child(2),
+    table.missing-cols td:nth-child(2) { min-width: 13rem; }
+    table.missing-cols th.num:nth-child(3),
+    table.missing-cols td.num:nth-child(3),
+    table.missing-cols th.num:nth-child(4),
+    table.missing-cols td.num:nth-child(4) {
+      min-width: 7rem;
+    }
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+    table.missing-cols code {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: #0f172a;
+      background: #f1f5f9;
+      border: 1px solid var(--line);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .miss-cell {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: nowrap;
+    }
+    .bar-track {
+      flex: 1;
+      min-width: 80px;
+      max-width: 160px;
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+    .bar-fill {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .miss-pct {
+      font-weight: 600;
+      font-size: 13px;
+      min-width: 4.5rem;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .miss-low { color: #15803d; }
+    .miss-mid { color: #c2410c; }
+    .miss-high { color: #b91c1c; }
+    main.wide { max-width: 1280px; }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+    .compare-panel h2.panel-subtitle {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    table.diff-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table.diff-table thead th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #475569;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line-strong);
+    }
+    table.diff-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    table.diff-table tbody tr:last-child td { border-bottom: none; }
+    table.diff-table tbody tr:nth-child(even) td { background: #fcfcfd; }
+    table.diff-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .delta-up { color: #15803d; font-weight: 600; }
+    .delta-down { color: #b91c1c; font-weight: 600; }
+    .section-block { margin-top: 2rem; }
+    .section-block > h2.section-title {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    </style>
+</head>
+<body>
+  <main>
+    <section class="panel" id="missing-columns">
+      <header class="report-header">
+        <h1 class="report-title">Backfill plan: missing Unidata columns from GPKG (excluding footprints)</h1>
+        <p class="report-meta"><time datetime="2026-05-13T22:01:56Z">Generated 2026-05-13T22:01:56Z</time></p>
+        
+      </header>
+      <div class="table-wrap missing-report-scroll">
+        <table class="missing-cols">
+          <thead>
+            <tr>
+              <th>Column</th>
+              <th>Missing %</th>
+              <th class="num">Missing</th>
+              <th class="num">Present</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><code>fhszsra</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="97.57% missing"><span class="bar-fill" style="width:97.6%;background:#dc2626"></span></div><span class="miss-pct miss-high">97.57%</span></div></td><td class='num'>482,141</td><td class='num'>12,001</td></tr><tr><td><code>yearbuilt</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="4.36% missing"><span class="bar-fill" style="width:4.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">4.36%</span></div></td><td class='num'>21,561</td><td class='num'>472,581</td></tr><tr><td><code>fhszlra</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="2.08% missing"><span class="bar-fill" style="width:2.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">2.08%</span></div></td><td class='num'>10,299</td><td class='num'>483,843</td></tr><tr><td><code>scity</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.39% missing"><span class="bar-fill" style="width:0.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.39%</span></div></td><td class='num'>1,929</td><td class='num'>492,213</td></tr><tr><td><code>address</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.34% missing"><span class="bar-fill" style="width:0.3%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.34%</span></div></td><td class='num'>1,669</td><td class='num'>492,473</td></tr><tr><td><code>zoning</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.06% missing"><span class="bar-fill" style="width:0.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.06%</span></div></td><td class='num'>310</td><td class='num'>493,832</td></tr><tr><td><code>fldzone</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.0010% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.0010%</span></div></td><td class='num'>5</td><td class='num'>494,137</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

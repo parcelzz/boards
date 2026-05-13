@@ -50,6 +50,7 @@ class ColSemantics:
     udt_name: str
     total_rows: int
     taxonomy: str
+    taxonomy_key: str
     missing_pct_step1: float
     n_null: int | None = None
     n_true: int | None = None
@@ -74,6 +75,7 @@ class ColSemantics:
             "udt_name": self.udt_name,
             "total_rows": self.total_rows,
             "taxonomy": self.taxonomy,
+            "taxonomy_key": self.taxonomy_key,
             "missing_pct_step1": self.missing_pct_step1,
             "n_null": self.n_null if self.n_null is not None else "",
             "n_true": self.n_true if self.n_true is not None else "",
@@ -276,6 +278,7 @@ def analyze_column(
     fr = field_row_lookup.get(column_name.lower())
     missing_pct = float(fr.missing_pct) if fr else 0.0
     tax = taxonomy_title(fr.taxonomy_bucket) if fr else "—"
+    tax_key = str(fr.taxonomy_bucket) if fr else "—"
     total_fr = int(fr.total_rows) if fr else 0
 
     col_low = column_name.lower()
@@ -300,6 +303,7 @@ def analyze_column(
             udt_name=udt_name,
             total_rows=total,
             taxonomy=tax,
+            taxonomy_key=tax_key,
             missing_pct_step1=missing_pct,
             n_null=n_null,
             n_true=n_true,
@@ -329,6 +333,7 @@ def analyze_column(
             udt_name=udt_name,
             total_rows=total,
             taxonomy=tax,
+            taxonomy_key=tax_key,
             missing_pct_step1=missing_pct,
             n_null=n_null,
             n_blank=n_blank,
@@ -361,6 +366,7 @@ def analyze_column(
             udt_name=udt_name,
             total_rows=total,
             taxonomy=tax,
+            taxonomy_key=tax_key,
             missing_pct_step1=missing_pct,
             n_null=n_null,
             n_zero=n_zero,
@@ -393,6 +399,7 @@ def analyze_column(
             udt_name=udt_name,
             total_rows=total,
             taxonomy=tax,
+            taxonomy_key=tax_key,
             missing_pct_step1=missing_pct,
             n_null=n_null,
             n_empty_array=n_empty_array,
@@ -422,6 +429,7 @@ def analyze_column(
         udt_name=udt_name,
         total_rows=total,
         taxonomy=tax,
+        taxonomy_key=tax_key,
         missing_pct_step1=missing_pct,
         n_null=n_null,
         null_pct=pct(n_null, total) if total else 0.0,
@@ -471,6 +479,24 @@ def write_csv(path: Path, rows: list[dict[str, str | float | int]], fieldnames: 
         w.writeheader()
         for row in rows:
             w.writerow(row)
+
+
+def write_bucket_csvs(
+    out_root: Path, semantics: list[ColSemantics], fieldnames: list[str]
+) -> None:
+    """
+    Mirrors Step 1 structure: write per-taxonomy exports for easier review.
+
+    Output paths:
+      outputs/missingness_step3/<taxonomy_key>/semantics_by_column.csv
+    """
+    by_bucket: dict[str, list[dict[str, str | float | int]]] = {}
+    for s in semantics:
+        by_bucket.setdefault(s.taxonomy_key, []).append(s.as_csv_row())
+
+    for bucket_key, rows in by_bucket.items():
+        # Keep Step 3 bucketed files separate from the global CSV name.
+        write_csv(out_root / bucket_key / "semantics_by_column.csv", rows, fieldnames)
 
 
 def build_html(
@@ -912,6 +938,7 @@ def main() -> None:
         "udt_name",
         "total_rows",
         "taxonomy",
+        "taxonomy_key",
         "missing_pct_step1",
         "n_null",
         "n_true",
@@ -934,6 +961,7 @@ def main() -> None:
         [s.as_csv_row() for s in semantics],
         fieldnames,
     )
+    write_bucket_csvs(out_root, semantics, fieldnames)
     hz_names = ["liquefaction", "landslide", "alquist_fault", "row_count"]
     write_csv(out_root / "hazard_boolean_crosstab.csv", hazard, hz_names)
 

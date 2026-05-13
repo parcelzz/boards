@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Unidata missingness — before &amp; after</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --line-strong: #cbd5e1;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 40px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 20px 64px;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      padding: 28px 28px 24px;
+      box-shadow: var(--shadow);
+    }
+    .report-header {
+      margin-bottom: 22px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .report-title {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .report-meta {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .report-meta time { color: inherit; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .table-wrap {
+      overflow-x: auto;
+      padding: 0;
+      margin: 0 -4px;
+      border-radius: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .table-wrap.missing-report-scroll { max-width: 100%; }
+    table.missing-cols {
+      width: max(100%, 720px);
+      min-width: 720px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table.missing-cols thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #475569;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line-strong);
+      white-space: nowrap;
+    }
+    table.missing-cols thead th.num { text-align: right; }
+    table.missing-cols tbody td {
+      padding: 13px 16px;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--line);
+      color: #1e293b;
+    }
+    table.missing-cols tbody tr:last-child td { border-bottom: none; }
+    table.missing-cols tbody tr:hover td { background: #f8fafc; }
+    table.missing-cols tbody tr:nth-child(even) td { background: #fcfcfd; }
+    table.missing-cols tbody tr:nth-child(even):hover td { background: #f1f5f9; }
+    table.missing-cols th:first-child,
+    table.missing-cols td:first-child {
+      min-width: 11rem;
+      white-space: nowrap;
+    }
+    table.missing-cols th:nth-child(2),
+    table.missing-cols td:nth-child(2) { min-width: 13rem; }
+    table.missing-cols th.num:nth-child(3),
+    table.missing-cols td.num:nth-child(3),
+    table.missing-cols th.num:nth-child(4),
+    table.missing-cols td.num:nth-child(4) {
+      min-width: 7rem;
+    }
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+    table.missing-cols code {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: #0f172a;
+      background: #f1f5f9;
+      border: 1px solid var(--line);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .miss-cell {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: nowrap;
+    }
+    .bar-track {
+      flex: 1;
+      min-width: 80px;
+      max-width: 160px;
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+    .bar-fill {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .miss-pct {
+      font-weight: 600;
+      font-size: 13px;
+      min-width: 4.5rem;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .miss-low { color: #15803d; }
+    .miss-mid { color: #c2410c; }
+    .miss-high { color: #b91c1c; }
+    main.wide { max-width: 1280px; }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+    .compare-panel h2.panel-subtitle {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    table.diff-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table.diff-table thead th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #475569;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line-strong);
+    }
+    table.diff-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    table.diff-table tbody tr:last-child td { border-bottom: none; }
+    table.diff-table tbody tr:nth-child(even) td { background: #fcfcfd; }
+    table.diff-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .delta-up { color: #15803d; font-weight: 600; }
+    .delta-down { color: #b91c1c; font-weight: 600; }
+    .section-block { margin-top: 2rem; }
+    .section-block > h2.section-title {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    body.gpkg-compare {
+      background: linear-gradient(160deg, #eef2ff 0%, #f1f5f9 40%, #f8fafc 100%);
+      color: #0f172a;
+    }
+    body.gpkg-compare main.wide {
+      max-width: 1320px;
+      padding-top: 32px;
+      padding-bottom: 72px;
+    }
+    body.gpkg-compare .hero-panel {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #c7d2fe;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 24px 48px -12px rgba(30, 41, 59, 0.12);
+    }
+    body.gpkg-compare .hero-panel .accent-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #2563eb 0%, #6366f1 45%, #0d9488 100%);
+    }
+    body.gpkg-compare .hero-panel .report-header {
+      padding-top: 18px;
+      border-bottom: none;
+    }
+    body.gpkg-compare .hero-panel .report-title {
+      font-size: 1.45rem;
+      letter-spacing: -0.03em;
+      color: #0f172a;
+    }
+    body.gpkg-compare .section-block.panel {
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    body.gpkg-compare .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1e293b;
+      padding-bottom: 10px;
+      margin-bottom: 4px;
+      border-bottom: 2px solid #e2e8f0;
+      letter-spacing: -0.02em;
+    }
+    body.gpkg-compare .compare-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 1.75rem;
+      align-items: stretch;
+    }
+    @media (max-width: 1100px) {
+      body.gpkg-compare .compare-grid { grid-template-columns: 1fr; }
+    }
+    body.gpkg-compare .compare-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-radius: 14px;
+      padding: 0;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      overflow: hidden;
+    }
+    body.gpkg-compare .compare-panel.before {
+      background: #ffffff;
+      border-color: #bfdbfe;
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.06), 0 8px 24px -8px rgba(37, 99, 235, 0.15);
+    }
+    body.gpkg-compare .compare-panel.after {
+      background: #ffffff;
+      border-color: #a7f3d0;
+      box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.06), 0 8px 24px -8px rgba(5, 150, 105, 0.12);
+    }
+    body.gpkg-compare .compare-panel .panel-head {
+      flex-shrink: 0;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    body.gpkg-compare .compare-panel.before .panel-head {
+      background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
+      border-bottom-color: #bfdbfe;
+    }
+    body.gpkg-compare .compare-panel.after .panel-head {
+      background: linear-gradient(180deg, #ecfdf5 0%, #f8fafc 100%);
+      border-bottom-color: #a7f3d0;
+    }
+    body.gpkg-compare .compare-panel .panel-head-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    body.gpkg-compare .compare-panel .panel-desc {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      line-height: 1.45;
+      max-width: 100%;
+    }
+    body.gpkg-compare .compare-panel .panel-after-note {
+      margin: 0 20px 12px;
+      font-size: 12px;
+    }
+    body.gpkg-compare .compare-panel .table-wrap.missing-report-scroll {
+      flex: 1;
+      min-height: 280px;
+      max-height: min(70vh, 680px);
+      margin: 0;
+      padding: 0 0 12px;
+      overflow: auto;
+      border: none;
+      border-radius: 0;
+    }
+    body.gpkg-compare .compare-panel .table-wrap.missing-report-scroll table.missing-cols {
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+    }
+    body.gpkg-compare table.missing-cols thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 1px 0 #cbd5e1;
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      color: #475569;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    body.gpkg-compare .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    body.gpkg-compare .badge-before {
+      background: #dbeafe;
+      color: #1d4ed8;
+      border: 1px solid #93c5fd;
+    }
+    body.gpkg-compare .badge-after {
+      background: #d1fae5;
+      color: #047857;
+      border: 1px solid #6ee7b7;
+    }
+    body.gpkg-compare table.missing-cols {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    body.gpkg-compare table.diff-table tbody tr.tr-footprint-field td,
+    body.gpkg-compare table.missing-cols tbody tr.tr-footprint-field td {
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.06) 0%, transparent 12px);
+    }
+    body.gpkg-compare table.missing-cols tbody tr.tr-footprint-field td:first-child {
+      box-shadow: inset 3px 0 0 0 #6366f1;
+    }
+    body.gpkg-compare table.diff-table tbody tr.tr-footprint-field td:first-child {
+      box-shadow: inset 3px 0 0 0 #6366f1;
+    }
+    body.gpkg-compare .section-block.panel > .table-wrap {
+      max-height: min(55vh, 520px);
+      overflow: auto;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    body.gpkg-compare .section-block.panel > .table-wrap table.diff-table {
+      border: none;
+      border-radius: 0;
+    }
+    body.gpkg-compare .section-block.panel table.diff-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 1px 0 #0f172a;
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      color: #f8fafc;
+      border-bottom: 1px solid #0f172a;
+      font-size: 10px;
+    }
+    body.gpkg-compare table.diff-table tbody tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    body.gpkg-compare table.diff-table tbody tr:hover td {
+      background: #f1f5f9;
+    }
+    </style>
+</head>
+<body class="gpkg-compare">
+  <main class="wide">
+    <section class="panel hero-panel">
+      <div class="accent-bar" aria-hidden="true"></div>
+      <header class="report-header">
+        <h1 class="report-title">Unidata missingness — before &amp; after</h1>
+        <p class="report-meta"><time datetime="2026-05-13T22:01:56Z">Generated 2026-05-13T22:01:56Z</time></p>
+        <p class="report-meta muted">Columns with <strong>Missing</strong> &gt; 0 in this snapshot, <strong>plus</strong> <code>sqft</code> and <code>building_area</code> when those columns exist (<code>footprints</code> excluded). Same Step-1 rules (e.g. numeric 0 counts as missing for sqft / area). <strong>Dry run</strong> — both panels match; no UPDATE was applied.</p>
+      </header>
+    </section>
+    <section class="panel section-block">
+      <h2 class="section-title">Side-by-side</h2>
+      <div class="compare-grid">
+        <div class="compare-panel before">
+          <div class="panel-head">
+            <div class="panel-head-top">
+              <span class="badge badge-before">Before</span>
+            </div>
+            <p class="panel-desc">Before database update: missing Unidata columns (excluding footprints)</p>
+          </div>
+          <div class="table-wrap missing-report-scroll">
+            <table class="missing-cols">
+              <thead>
+                <tr>
+                  <th>Column</th>
+                  <th>Missing %</th>
+                  <th class="num">Missing</th>
+                  <th class="num">Present</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><code>fhszsra</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="97.57% missing"><span class="bar-fill" style="width:97.6%;background:#dc2626"></span></div><span class="miss-pct miss-high">97.57%</span></div></td><td class='num'>482,141</td><td class='num'>12,001</td></tr><tr><td><code>yearbuilt</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="4.36% missing"><span class="bar-fill" style="width:4.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">4.36%</span></div></td><td class='num'>21,561</td><td class='num'>472,581</td></tr><tr><td><code>fhszlra</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="2.08% missing"><span class="bar-fill" style="width:2.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">2.08%</span></div></td><td class='num'>10,299</td><td class='num'>483,843</td></tr><tr><td><code>scity</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.39% missing"><span class="bar-fill" style="width:0.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.39%</span></div></td><td class='num'>1,929</td><td class='num'>492,213</td></tr><tr><td><code>address</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.34% missing"><span class="bar-fill" style="width:0.3%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.34%</span></div></td><td class='num'>1,669</td><td class='num'>492,473</td></tr><tr><td><code>zoning</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.06% missing"><span class="bar-fill" style="width:0.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.06%</span></div></td><td class='num'>310</td><td class='num'>493,832</td></tr><tr><td><code>fldzone</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.0010% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.0010%</span></div></td><td class='num'>5</td><td class='num'>494,137</td></tr><tr class="tr-footprint-field"><td><code>building_area</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='num'>0</td><td class='num'>494,142</td></tr><tr class="tr-footprint-field"><td><code>sqft</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='num'>0</td><td class='num'>494,142</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="compare-panel after">
+          <div class="panel-head">
+            <div class="panel-head-top">
+              <span class="badge badge-after">After</span>
+            </div>
+            <p class="panel-desc">After database update: missing Unidata columns (excluding footprints)</p>
+          </div>
+          <p class="report-meta muted panel-after-note">Dry run: right panel matches the left.</p>
+          <div class="table-wrap missing-report-scroll">
+            <table class="missing-cols">
+              <thead>
+                <tr>
+                  <th>Column</th>
+                  <th>Missing %</th>
+                  <th class="num">Missing</th>
+                  <th class="num">Present</th>
+                </tr>
+              </thead>
+              <tbody><tr><td><code>fhszsra</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="97.57% missing"><span class="bar-fill" style="width:97.6%;background:#dc2626"></span></div><span class="miss-pct miss-high">97.57%</span></div></td><td class='num'>482,141</td><td class='num'>12,001</td></tr><tr><td><code>yearbuilt</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="4.36% missing"><span class="bar-fill" style="width:4.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">4.36%</span></div></td><td class='num'>21,561</td><td class='num'>472,581</td></tr><tr><td><code>fhszlra</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="2.08% missing"><span class="bar-fill" style="width:2.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">2.08%</span></div></td><td class='num'>10,299</td><td class='num'>483,843</td></tr><tr><td><code>scity</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.39% missing"><span class="bar-fill" style="width:0.4%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.39%</span></div></td><td class='num'>1,929</td><td class='num'>492,213</td></tr><tr><td><code>address</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.34% missing"><span class="bar-fill" style="width:0.3%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.34%</span></div></td><td class='num'>1,669</td><td class='num'>492,473</td></tr><tr><td><code>zoning</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.06% missing"><span class="bar-fill" style="width:0.1%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.06%</span></div></td><td class='num'>310</td><td class='num'>493,832</td></tr><tr><td><code>fldzone</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.0010% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.0010%</span></div></td><td class='num'>5</td><td class='num'>494,137</td></tr><tr class="tr-footprint-field"><td><code>building_area</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='num'>0</td><td class='num'>494,142</td></tr><tr class="tr-footprint-field"><td><code>sqft</code></td><td class='num'><div class="miss-cell"><div class="bar-track" title="0.00% missing"><span class="bar-fill" style="width:0.0%;background:#16a34a"></span></div><span class="miss-pct miss-low">0.00%</span></div></td><td class='num'>0</td><td class='num'>494,142</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="panel section-block">
+      <h2 class="section-title">Change summary</h2>
+      <div class="table-wrap">
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th>Column</th>
+              <th class="num">Before missing %</th>
+              <th class="num">After missing %</th>
+              <th class="num">Δ missing rows</th>
+            </tr>
+          </thead>
+          <tbody><tr><td><code>fhszsra</code></td><td class='num'>97.57%</td><td class='num'>97.57%</td><td class='num'><span class="muted">0</span></td></tr><tr><td><code>yearbuilt</code></td><td class='num'>4.36%</td><td class='num'>4.36%</td><td class='num'><span class="muted">0</span></td></tr><tr><td><code>fhszlra</code></td><td class='num'>2.08%</td><td class='num'>2.08%</td><td class='num'><span class="muted">0</span></td></tr><tr><td><code>scity</code></td><td class='num'>0.39%</td><td class='num'>0.39%</td><td class='num'><span class="muted">0</span></td></tr><tr><td><code>address</code></td><td class='num'>0.34%</td><td class='num'>0.34%</td><td class='num'><span class="muted">0</span></td></tr><tr><td><code>zoning</code></td><td class='num'>0.06%</td><td class='num'>0.06%</td><td class='num'><span class="muted">0</span></td></tr><tr><td><code>fldzone</code></td><td class='num'>0.0010%</td><td class='num'>0.0010%</td><td class='num'><span class="muted">0</span></td></tr><tr class="tr-footprint-field"><td><code>building_area</code></td><td class='num'>0.00%</td><td class='num'>0.00%</td><td class='num'><span class="muted">0</span></td></tr><tr class="tr-footprint-field"><td><code>sqft</code></td><td class='num'>0.00%</td><td class='num'>0.00%</td><td class='num'><span class="muted">0</span></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,8 @@
+column_name,taxonomy,taxonomy_key,missing_pct,missing_count,present_count,total_rows,behavior_risk,review_priority,on_gpkg_parcel_extract
+fhszsra,External join fields,external_join,97.5713,482141,12001,494142,High,P1–P2,no
+yearbuilt,API-fillable fields,api_fillable,4.3633,21561,472581,494142,Low,P3,yes
+fhszlra,External join fields,external_join,2.0842,10299,483843,494142,Low,P3,no
+scity,Core parcel fields,core_parcel,0.3904,1929,492213,494142,Moderate,P2,yes
+address,Core parcel fields,core_parcel,0.3378,1669,492473,494142,Moderate,P2,yes
+zoning,API-fillable fields,api_fillable,0.0627,310,493832,494142,Low,P3,yes
+fldzone,External join fields,external_join,0.0010,5,494137,494142,Low,P3,no
