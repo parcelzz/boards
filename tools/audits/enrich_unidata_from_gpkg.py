@@ -6,7 +6,9 @@ pass for APNs that appear only once in the merged GPKG rows, plus a third **APN-
 (``_gpkg_by_apn``) when situs ``scity`` still does not match but the parcel row can supply
 address, lat/lon, yearbuilt, zoning, etc.
 
-Never updates `footprints`. Optional numeric fills: `sqft`, `building_area`, `yearbuilt`;
+Optional footprint fill: pass ``--with-footprints`` to run ``enrich_unidata_footprints.py`` after
+this script (``California.gpkg`` by default). Parcel-attribute fills never touch existing
+``footprints``. Optional numeric fills: `sqft`, `building_area`, `yearbuilt`;
 text/location: `address`, `city`, `scity`, `lat`, `lon`, `zoning`.
 
 Staging prefers the best non-empty GPKG value per field: situs **address** / **address2** / **mailadd** /
@@ -23,6 +25,7 @@ Presence rules match Step 1 / Task 2 (e.g. zero treated as missing for `sqft` an
 Run from repo root:
   py -3 tools/audits/enrich_unidata_from_gpkg.py              # dry run; loads every *.gpkg under data/ with parcel layers
   py -3 tools/audits/enrich_unidata_from_gpkg.py --apply        # report bundle, then UPDATE
+  py -3 tools/audits/enrich_unidata_from_gpkg.py --apply --with-footprints  # parcel fields + footprints
   py -3 tools/audits/enrich_unidata_from_gpkg.py --gpkg-path data/ca_santa_clara_parcel_build_opt.gpkg  # single file
 
 Writes the same style of bundle as Steps 1–3 under ``outputs/missingness_gpkg_fill/``:
@@ -33,10 +36,10 @@ Writes the same style of bundle as Steps 1–3 under ``outputs/missingness_gpkg_
   - ``unidata_gpkg_field_comparison.csv`` — for Step-1-missing columns on the GPKG extract: matched rows, gaps, recoverable
   - ``unidata_gpkg_gap_detail_sample.csv`` — sample gap rows for those columns only
   - ``report_after_update.html`` — only with ``--apply``: post-commit missingness (HTML only)
-  - ``report_before_after.html`` — whenever reports are on: **final** side-by-side tables (same 4-column layout
-    as ``report_before_update.html``) listing **every** ``unidata`` column except ``footprints``, with **Missing** /
-    **Present** counts always shown (so ``sqft`` / ``building_area`` at **0%** still appear after apply). Dry run:
-    both panels are the same snapshot; ``--apply``: true before vs committed after, plus a change-summary table.
+  - ``report_before_after.html`` — whenever reports are on: side-by-side **before / after** for **GPKG-mappable**
+    Unidata columns only (``address``, ``city``, ``scity``, ``lat``, ``lon``, ``yearbuilt``, ``zoning``, ``sqft``,
+    ``building_area``), **plus** ``sqft`` / ``building_area`` at 0% when present. Hazard-only fields (e.g. ``fhszsra``)
+    are omitted so the change summary matches parcel-GPKG scope.
 
 ``report_after_update.html`` is produced only with ``--apply`` (and reports on): same table layout, **committed**
 Unidata after the UPDATE passes. ``report_before_update.html`` is written on **every** report run (dry or apply):
@@ -69,6 +72,7 @@ from field_missingness_classification import (
     DEFAULT_DB_CONFIG,
     FieldRow,
     compute_field_rows,
+    compute_field_rows_on_connection,
     taxonomy_title,
 )
 
@@ -251,6 +255,12 @@ def sql_literal(s: str) -> str:
 GPKG_MAPPABLE_COLS = frozenset(
     {"address", "city", "scity", "lat", "lon", "sqft", "building_area", "yearbuilt", "zoning"}
 )
+
+# Always listed in report_before_after.html when the columns exist (even at 0% missing).
+COMPARE_REPORT_ALWAYS_COLS = frozenset({"sqft", "building_area"})
+
+# report_before_after.html: only these Unidata columns (plus always sqft/building_area at 0% if present).
+COMPARE_REPORT_WHITELIST_LOWER = frozenset(c.lower() for c in GPKG_MAPPABLE_COLS)
 
 
 def _all_gpkg_compare_specs() -> list[tuple[str, str, str, str, str]]:
@@ -749,33 +759,263 @@ def _fmt_step1_pct_label(pct: float) -> str:
     return f"{pct:.2f}%"
 
 
-def _all_non_footprint_column_order(
+def _nonzero_missing_column_order(
     field_rows_b: list[FieldRow],
     field_rows_a: list[FieldRow],
 ) -> list[str]:
-    """Every Unidata column except ``footprints``, same order in both panels (high missing first)."""
+    """GPKG-focused columns: parcel fields this tool can fill, plus ``sqft`` / ``building_area`` at 0% if needed.
+
+    Omits hazard-only / external columns (e.g. ``fhszsra``, ``fhszlra``, ``fldzone``) so the change summary
+    stays aligned with the county parcel GeoPackage scope.
+    """
     db = {r.column_name.lower(): r for r in field_rows_b}
     da = {r.column_name.lower(): r for r in field_rows_a}
     all_low = (set(db.keys()) | set(da.keys())) - {"footprints"}
 
+    included: set[str] = set()
+    for low in all_low:
+        if low not in db or low not in da:
+            continue
+        if low not in COMPARE_REPORT_WHITELIST_LOWER:
+            continue
+        if db[low].missing > 0 or da[low].missing > 0:
+            included.add(low)
+    for low in COMPARE_REPORT_ALWAYS_COLS:
+        if low in db and low in da:
+            included.add(low)
+
     def sort_key(low: str) -> tuple:
-        rb = db.get(low)
-        ra = da.get(low)
-        mb = rb.missing_pct if rb else 0.0
-        ma = ra.missing_pct if ra else 0.0
-        return (-max(mb, ma), low)
+        rb, ra = db[low], da[low]
+        return (-max(rb.missing, ra.missing), -abs(rb.missing - ra.missing), low)
 
-    ordered = sorted(all_low, key=sort_key)
-    return [db[low].column_name if low in db else da[low].column_name for low in ordered]
+    ordered = sorted(included, key=sort_key)
+    return [db[low].column_name for low in ordered]
 
 
-def _missingness_rows_html_ordered(names: list[str], by_lower: dict[str, FieldRow]) -> str:
+def _empty_missing_compare_row() -> str:
+    return (
+        "<tr><td colspan='4' class='muted'>No GPKG-mappable columns with missing values in either snapshot, "
+        "or only <code>footprints</code> would apply (excluded).</td></tr>"
+    )
+
+
+def _empty_diff_compare_row() -> str:
+    return "<tr><td colspan='4' class='muted'>No rows to compare.</td></tr>"
+
+
+def _gpkg_compare_theme_css() -> str:
+    """Extra styles for ``report_before_after.html`` only (scoped under ``body.gpkg-compare``)."""
+    return """
+    body.gpkg-compare {
+      background: linear-gradient(160deg, #eef2ff 0%, #f1f5f9 40%, #f8fafc 100%);
+      color: #0f172a;
+    }
+    body.gpkg-compare main.wide {
+      max-width: 1320px;
+      padding-top: 32px;
+      padding-bottom: 72px;
+    }
+    body.gpkg-compare .hero-panel {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #c7d2fe;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 24px 48px -12px rgba(30, 41, 59, 0.12);
+    }
+    body.gpkg-compare .hero-panel .accent-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #2563eb 0%, #6366f1 45%, #0d9488 100%);
+    }
+    body.gpkg-compare .hero-panel .report-header {
+      padding-top: 18px;
+      border-bottom: none;
+    }
+    body.gpkg-compare .hero-panel .report-title {
+      font-size: 1.45rem;
+      letter-spacing: -0.03em;
+      color: #0f172a;
+    }
+    body.gpkg-compare .section-block.panel {
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    body.gpkg-compare .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1e293b;
+      padding-bottom: 10px;
+      margin-bottom: 4px;
+      border-bottom: 2px solid #e2e8f0;
+      letter-spacing: -0.02em;
+    }
+    body.gpkg-compare .compare-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 1.75rem;
+      align-items: stretch;
+    }
+    @media (max-width: 1100px) {
+      body.gpkg-compare .compare-grid { grid-template-columns: 1fr; }
+    }
+    body.gpkg-compare .compare-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-radius: 14px;
+      padding: 0;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      overflow: hidden;
+    }
+    body.gpkg-compare .compare-panel.before {
+      background: #ffffff;
+      border-color: #bfdbfe;
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.06), 0 8px 24px -8px rgba(37, 99, 235, 0.15);
+    }
+    body.gpkg-compare .compare-panel.after {
+      background: #ffffff;
+      border-color: #a7f3d0;
+      box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.06), 0 8px 24px -8px rgba(5, 150, 105, 0.12);
+    }
+    body.gpkg-compare .compare-panel .panel-head {
+      flex-shrink: 0;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    body.gpkg-compare .compare-panel.before .panel-head {
+      background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
+      border-bottom-color: #bfdbfe;
+    }
+    body.gpkg-compare .compare-panel.after .panel-head {
+      background: linear-gradient(180deg, #ecfdf5 0%, #f8fafc 100%);
+      border-bottom-color: #a7f3d0;
+    }
+    body.gpkg-compare .compare-panel .panel-head-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    body.gpkg-compare .compare-panel .panel-desc {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      line-height: 1.45;
+      max-width: 100%;
+    }
+    body.gpkg-compare .compare-panel .panel-after-note {
+      margin: 0 20px 12px;
+      font-size: 12px;
+    }
+    body.gpkg-compare .compare-panel .table-wrap.missing-report-scroll {
+      flex: 1;
+      min-height: 280px;
+      max-height: min(70vh, 680px);
+      margin: 0;
+      padding: 0 0 12px;
+      overflow: auto;
+      border: none;
+      border-radius: 0;
+    }
+    body.gpkg-compare .compare-panel .table-wrap.missing-report-scroll table.missing-cols {
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+    }
+    body.gpkg-compare table.missing-cols thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 1px 0 #cbd5e1;
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      color: #475569;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    body.gpkg-compare .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    body.gpkg-compare .badge-before {
+      background: #dbeafe;
+      color: #1d4ed8;
+      border: 1px solid #93c5fd;
+    }
+    body.gpkg-compare .badge-after {
+      background: #d1fae5;
+      color: #047857;
+      border: 1px solid #6ee7b7;
+    }
+    body.gpkg-compare table.missing-cols {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    body.gpkg-compare table.diff-table tbody tr.tr-footprint-field td,
+    body.gpkg-compare table.missing-cols tbody tr.tr-footprint-field td {
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.06) 0%, transparent 12px);
+    }
+    body.gpkg-compare table.missing-cols tbody tr.tr-footprint-field td:first-child {
+      box-shadow: inset 3px 0 0 0 #6366f1;
+    }
+    body.gpkg-compare table.diff-table tbody tr.tr-footprint-field td:first-child {
+      box-shadow: inset 3px 0 0 0 #6366f1;
+    }
+    body.gpkg-compare .section-block.panel > .table-wrap {
+      max-height: min(55vh, 520px);
+      overflow: auto;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    body.gpkg-compare .section-block.panel > .table-wrap table.diff-table {
+      border: none;
+      border-radius: 0;
+    }
+    body.gpkg-compare .section-block.panel table.diff-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      box-shadow: 0 1px 0 #0f172a;
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      color: #f8fafc;
+      border-bottom: 1px solid #0f172a;
+      font-size: 10px;
+    }
+    body.gpkg-compare table.diff-table tbody tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    body.gpkg-compare table.diff-table tbody tr:hover td {
+      background: #f1f5f9;
+    }
+    """
+
+
+def _missingness_rows_html_ordered(
+    names: list[str],
+    by_lower: dict[str, FieldRow],
+    *,
+    highlight_lowers: frozenset[str] | None = None,
+) -> str:
     esc = html_module.escape
+    hl = highlight_lowers or frozenset()
     parts: list[str] = []
     for name in names:
         r = by_lower[name.lower()]
+        low = r.column_name.lower()
+        tr_cls = ' class="tr-footprint-field"' if low in hl else ""
         parts.append(
-            "<tr>"
+            f"<tr{tr_cls}>"
             f"<td><code>{esc(r.column_name)}</code></td>"
             f"<td class='num'>{_report_missing_bar_cell(r.missing_pct)}</td>"
             f"<td class='num'>{r.missing:,}</td>"
@@ -794,16 +1034,24 @@ def _delta_missing_rows_html(before_m: int, after_m: int) -> str:
     return f'<span class="{cls}">{sign}{d:,}</span>'
 
 
-def _final_diff_summary_tbody(names: list[str], db: dict[str, FieldRow], da: dict[str, FieldRow]) -> str:
+def _final_diff_summary_tbody(
+    names: list[str],
+    db: dict[str, FieldRow],
+    da: dict[str, FieldRow],
+    *,
+    highlight_lowers: frozenset[str] | None = None,
+) -> str:
     esc = html_module.escape
+    hl = highlight_lowers or frozenset()
     parts: list[str] = []
     for name in names:
         low = name.lower()
         rb, ra = db[low], da[low]
         pct_b = esc(_fmt_step1_pct_label(rb.missing_pct))
         pct_a = esc(_fmt_step1_pct_label(ra.missing_pct))
+        tr_cls = ' class="tr-footprint-field"' if low in hl else ""
         parts.append(
-            "<tr>"
+            f"<tr{tr_cls}>"
             f"<td><code>{esc(rb.column_name)}</code></td>"
             f"<td class='num'>{pct_b}</td>"
             f"<td class='num'>{pct_a}</td>"
@@ -820,35 +1068,43 @@ def write_gpkg_before_after_final_html(
     *,
     dry_run: bool,
 ) -> None:
-    """Side-by-side tables (Step-1 style: Column / Missing % / Missing count / Present count) for all columns except ``footprints``."""
+    """Before/after compare: non-zero missing columns plus ``sqft`` / ``building_area``; polished UI."""
     out_root.mkdir(parents=True, exist_ok=True)
-    names = _all_non_footprint_column_order(field_rows_before, field_rows_after)
+    names = _nonzero_missing_column_order(field_rows_before, field_rows_after)
     db = {r.column_name.lower(): r for r in field_rows_before}
     da = {r.column_name.lower(): r for r in field_rows_after}
     gen = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     esc = html_module.escape
-    before_rows = _missingness_rows_html_ordered(names, db)
-    after_rows = _missingness_rows_html_ordered(names, da)
-    diff_body = _final_diff_summary_tbody(names, db, da)
-    title = "Unidata missingness — before & after (all columns except footprints)"
+    _hl = COMPARE_REPORT_ALWAYS_COLS
+    if names:
+        before_rows = _missingness_rows_html_ordered(names, db, highlight_lowers=_hl)
+        after_rows = _missingness_rows_html_ordered(names, da, highlight_lowers=_hl)
+        diff_body = _final_diff_summary_tbody(names, db, da, highlight_lowers=_hl)
+    else:
+        empty = _empty_missing_compare_row()
+        before_rows = empty
+        after_rows = empty
+        diff_body = _empty_diff_compare_row()
+    title = "Unidata missingness — before & after"
     if dry_run:
         intro = (
-            "Every column on <code>unidata</code> except <code>footprints</code>, with "
-            "<strong>Missing %</strong>, <strong>Missing</strong> row count, and <strong>Present</strong> row count "
-            "(same layout as <code>report_before_update.html</code>). "
-            "Dry run: both panels use the same snapshot — no UPDATE was applied."
+            "<strong>GPKG-mappable columns only</strong> (parcel extract scope): missing &gt; 0 in this snapshot, "
+            "<strong>plus</strong> <code>sqft</code> and <code>building_area</code> when those columns exist "
+            "(<code>footprints</code> excluded). Hazard-only fields such as <code>fhszsra</code> are not listed here. "
+            "Same Step-1 rules (e.g. numeric 0 counts as missing for sqft / area). "
+            "<strong>Dry run</strong> — both panels match; no UPDATE was applied."
         )
         after_note = (
-            '<p class="report-meta muted">Dry run: identical to the left panel (no database changes).</p>'
+            '<p class="report-meta muted panel-after-note">Dry run: right panel matches the left.</p>'
         )
     else:
         intro = (
-            "Every column on <code>unidata</code> except <code>footprints</code>, with "
-            "<strong>Missing %</strong>, <strong>Missing</strong> count, and <strong>Present</strong> count "
-            "(same layout as <code>report_before_update.html</code>). "
-            "Columns that reach <strong>0%</strong> missing after the GPKG apply (e.g. <code>sqft</code>, "
-            "<code>building_area</code>) still appear so you can compare counts. "
-            "<strong>Δ missing rows</strong> = missing before − missing after (positive ⇒ rows fixed)."
+            "<strong>GPKG-mappable columns only</strong> — missing <strong>before</strong> and/or "
+            "<strong>after</strong> the parcel GPKG UPDATE passes, "
+            "<strong>plus</strong> <code>sqft</code> and <code>building_area</code> for footprint fill tracking "
+            "(<code>footprints</code> excluded). Hazard-only fields are omitted. "
+            "Highlighted rows = area fields. <strong>Δ missing rows</strong> = missing before − missing after "
+            "(positive ⇒ rows fixed)."
         )
         after_note = ""
     before_panel_title = "Before database update: missing Unidata columns (excluding footprints)"
@@ -859,11 +1115,12 @@ def write_gpkg_before_after_final_html(
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{esc(title)}</title>
-  <style>{_gpkg_fill_report_css()}</style>
+  <style>{_gpkg_fill_report_css()}{_gpkg_compare_theme_css()}</style>
 </head>
-<body>
+<body class="gpkg-compare">
   <main class="wide">
-    <section class="panel">
+    <section class="panel hero-panel">
+      <div class="accent-bar" aria-hidden="true"></div>
       <header class="report-header">
         <h1 class="report-title">{esc(title)}</h1>
         <p class="report-meta"><time datetime="{esc(gen)}">Generated {esc(gen)}</time></p>
@@ -871,10 +1128,15 @@ def write_gpkg_before_after_final_html(
       </header>
     </section>
     <section class="panel section-block">
-      <h2 class="section-title">Side-by-side (same row order)</h2>
+      <h2 class="section-title">Side-by-side</h2>
       <div class="compare-grid">
-        <div class="compare-panel">
-          <h2 class="panel-subtitle">{esc(before_panel_title)}</h2>
+        <div class="compare-panel before">
+          <div class="panel-head">
+            <div class="panel-head-top">
+              <span class="badge badge-before">Before</span>
+            </div>
+            <p class="panel-desc">{esc(before_panel_title)}</p>
+          </div>
           <div class="table-wrap missing-report-scroll">
             <table class="missing-cols">
               <thead>
@@ -889,8 +1151,13 @@ def write_gpkg_before_after_final_html(
             </table>
           </div>
         </div>
-        <div class="compare-panel">
-          <h2 class="panel-subtitle">{esc(after_panel_title)}</h2>
+        <div class="compare-panel after">
+          <div class="panel-head">
+            <div class="panel-head-top">
+              <span class="badge badge-after">After</span>
+            </div>
+            <p class="panel-desc">{esc(after_panel_title)}</p>
+          </div>
           {after_note}
           <div class="table-wrap missing-report-scroll">
             <table class="missing-cols">
@@ -909,7 +1176,7 @@ def write_gpkg_before_after_final_html(
       </div>
     </section>
     <section class="panel section-block">
-      <h2 class="section-title">Change summary (percent + row delta)</h2>
+      <h2 class="section-title">Change summary</h2>
       <div class="table-wrap">
         <table class="diff-table">
           <thead>
@@ -966,7 +1233,7 @@ def write_gpkg_fill_report(
     {not_ex_single}
     """
 
-    field_rows = compute_field_rows(schema, table, DEFAULT_DB_CONFIG)
+    field_rows = compute_field_rows_on_connection(conn, schema, table)
     step1_missing = _step1_missing_nonfootprint_rows(field_rows)
     report_specs = _report_gpkg_compare_specs(field_rows)
     full_kpi_specs = _all_gpkg_compare_specs()
@@ -1240,6 +1507,11 @@ def main() -> None:
         default=8000,
         metavar="N",
         help="Max rows in the HTML/CSV detail sample (default 8000).",
+    )
+    p.add_argument(
+        "--with-footprints",
+        action="store_true",
+        help="After parcel GPKG apply (or dry run), run enrich_unidata_footprints.py with same --apply flag.",
     )
     args = p.parse_args()
     dry_run = not args.apply
@@ -1587,6 +1859,17 @@ def main() -> None:
         raise
     finally:
         conn.close()
+
+    if args.with_footprints:
+        import subprocess
+        import sys
+
+        fp_script = Path(__file__).resolve().parent / "enrich_unidata_footprints.py"
+        fp_cmd = [sys.executable, str(fp_script)]
+        if args.apply:
+            fp_cmd.append("--apply")
+        print("Running footprint backfill...")
+        subprocess.run(fp_cmd, check=True)
 
 
 if __name__ == "__main__":

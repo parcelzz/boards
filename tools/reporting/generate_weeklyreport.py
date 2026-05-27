@@ -828,8 +828,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--step1", type=Path, default=root / "outputs/missingness_step1/field_missingness_all.csv")
     p.add_argument("--step2", type=Path, default=root / "outputs/missingness_step2/field_completeness_summary.csv")
     p.add_argument("--step3", type=Path, default=root / "outputs/missingness_step3/semantics_by_column.csv")
-    p.add_argument("--step4", type=Path, default=root / "docs/step4_product_field_review.md")
-    p.add_argument("--step5", type=Path, default=root / "docs/step5_external_data_source_evaluation.md")
+    p.add_argument("--step4", type=Path, default=root / "docs/step-04-product-field-review.md")
+    p.add_argument("--step5", type=Path, default=root / "docs/step-05-external-source-evaluation.md")
     p.add_argument("--out", type=Path, default=root / "outputs/weeklyreport.html")
     return p.parse_args()
 

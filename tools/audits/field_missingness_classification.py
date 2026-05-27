@@ -337,6 +337,48 @@ def compute_field_rows(schema: str, table: str, db_config: dict) -> list[FieldRo
     return rows_out
 
 
+def compute_field_rows_on_connection(conn: psycopg.Connection, schema: str, table: str) -> list[FieldRow]:
+    """Same logic as ``compute_field_rows`` but on an existing connection.
+
+    Use this from long-running tools (e.g. GPKG enrich) so the missingness snapshot uses the **same**
+    transaction and visibility rules as the rest of that run — consistent with Step 1 counts for
+    ``sqft`` / ``building_area`` (where NULL or 0 still counts as missing per ``presence_predicate``).
+    """
+    rows_out: list[FieldRow] = []
+    with conn.cursor() as cur:
+        cols = fetch_columns(cur, schema, table)
+        total, presents = fetch_present_counts_one_scan(cur, schema, table, cols)
+        if len(presents) != len(cols):
+            raise RuntimeError("Column count mismatch between metadata and aggregate query.")
+        for idx, (column_name, data_type, udt_name) in enumerate(cols):
+            present = presents[idx]
+            missing = max(0, total - present)
+            missing_pct = round((missing / total) * 100.0, 4) if total else 0.0
+            bucket = bucket_for_row(column_name, missing_pct)
+            strat = initial_strategy(bucket)
+            impact = product_impact_note(bucket, missing_pct, column_name)
+            beh = product_behavior_risk(bucket, missing_pct)
+            prio = review_priority(bucket, missing_pct)
+            rows_out.append(
+                FieldRow(
+                    column_name=column_name,
+                    data_type=data_type,
+                    udt_name=udt_name,
+                    total_rows=total,
+                    present=present,
+                    missing=missing,
+                    missing_pct=missing_pct,
+                    taxonomy_bucket=bucket,
+                    initial_strategy=strat,
+                    product_impact=impact,
+                    product_behavior_risk=beh,
+                    review_priority=prio,
+                )
+            )
+    rows_out.sort(key=lambda r: (r.taxonomy_bucket, r.missing_pct, r.column_name))
+    return rows_out
+
+
 def write_csv(path: Path, field_rows: Iterable[FieldRow]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     headers = [

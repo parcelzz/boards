@@ -549,7 +549,7 @@ def build_html(
       <li><span class="ck-i">1</span><strong>Step 1 — Missingness.</strong> Classifies columns (taxonomy) and percent missing — same rules as <code>outputs/missingness_step1/</code>.</li>
       <li><span class="ck-i">2</span><strong>Step 2 — Completeness QA.</strong> Maps, city slices, samples; surfaces “zero semantics” questions.</li>
       <li><span class="ck-i">3</span><strong>Step 3 — Semantics (this report).</strong> Counts how values are stored (NULL vs literals, zeros, blanks) for Step 4 decisions.</li>
-      <li><span class="ck-i">4</span><strong>Step 4 — Product review.</strong> Use <code>docs/product_field_review_template.md</code> with the CSV/HTML from Steps 1–3.</li>
+      <li><span class="ck-i">4</span><strong>Step 4 — Product review.</strong> Use <code>docs/step-04-product-field-review-template.md</code> with the CSV/HTML from Steps 1–3.</li>
     </ol>
     <p class="muted ck-note"><strong>Hazard crosstab:</strong> each column shows <code>N</code> (NULL), <code>T</code>, or <code>F</code> per field; <strong>rows</strong> is parcel count. <strong>Main table:</strong> distribution snapshot depends on PostgreSQL type (boolean vs numeric vs text).</p>"""
     guide_rows = """
@@ -842,7 +842,7 @@ def build_html(
   <header class="hero">
     <h1>Next-stage work plan · Step 3: Field semantics audit</h1>
     <p><strong>What this is:</strong> Measures <strong>how values are stored</strong> (NULL vs <code>FALSE</code> vs <code>TRUE</code>, NULL vs numeric <code>0</code>, blanks, empty arrays), not only “how many cells look empty.” Use with Step 2 completeness QA and Step 4 product review.</p>
-    <p><strong>Use it with:</strong> Step 2 “zero semantics” notes and <code>docs/product_field_review_template.md</code> — Step 3 supplies counts; Step 4 records product decisions.</p>
+    <p><strong>Use it with:</strong> Step 2 “zero semantics” notes and <code>docs/step-04-product-field-review-template.md</code> — Step 3 supplies counts; Step 4 records product decisions.</p>
     <p><time datetime="{esc(generated_iso)}">Generated {esc(generated_iso)}</time></p>
   </header>
   <nav class="jump" aria-label="Section navigation">
