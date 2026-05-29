@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Final Unidata Audit Report</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-dark: #1e40af;
+      --header-from: #0f2744;
+      --header-to: #1e40af;
+      --ok: #059669;
+      --warn: #d97706;
+      --risk: #dc2626;
+      --shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    .wrap { max-width: 1140px; margin: 0 auto; padding: 28px 24px 56px; }
+    .hero {
+      background: linear-gradient(135deg, var(--header-from) 0%, var(--header-to) 55%, #3b82f6 100%);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 36px 40px 32px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .hero h1 { margin: 0 0 10px; font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; }
+    .hero-meta { margin: 0; opacity: 0.9; font-size: 0.95rem; }
+    .hero-meta code { background: rgba(0,0,0,0.2); color: #e0e7ff; padding: 2px 8px; border-radius: 4px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .kpi {
+      border-radius: 10px;
+      padding: 18px 20px;
+      border: 1px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 10px 10px 0 0;
+    }
+    .kpi-blue { background: #eff6ff; border-color: #bfdbfe; }
+    .kpi-blue::before { background: #2563eb; }
+    .kpi-indigo { background: #eef2ff; border-color: #c7d2fe; }
+    .kpi-indigo::before { background: #4f46e5; }
+    .kpi-teal { background: #f0fdfa; border-color: #99f6e4; }
+    .kpi-teal::before { background: #0d9488; }
+    .kpi-amber { background: #fffbeb; border-color: #fcd34d; }
+    .kpi-amber::before { background: #d97706; }
+    .kpi-green { background: #ecfdf5; border-color: #6ee7b7; }
+    .kpi-green::before { background: #059669; }
+    .kpi-val { font-size: 1.65rem; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+    .kpi-lbl { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 6px; font-weight: 600; }
+    .kpi-note { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+    .summary {
+      border-left: 4px solid var(--ok);
+      background: linear-gradient(90deg, #ecfdf5 0%, #fff 40%);
+      padding: 20px 24px;
+      border-radius: var(--radius);
+      margin-bottom: 28px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .summary strong { color: #047857; }
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 36px 0 14px;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--ink);
+      border: none;
+      padding: 0;
+    }
+    .section-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .lead { color: var(--muted); font-size: 0.92rem; margin: -6px 0 14px 46px; }
+    .table-wrap { overflow-x: auto; margin: 4px 0; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .data-table th {
+      background: #f8fafc;
+      text-align: left;
+      padding: 11px 14px;
+      border-bottom: 2px solid var(--border);
+      font-weight: 600;
+      color: #475569;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .data-table tbody tr:hover td { background: #f8fafc; }
+    .data-table tr.row-total td { background: #f1f5f9; font-weight: 600; border-top: 2px solid var(--border); }
+    .data-table tr.row-risk td { background: #fef2f2; }
+    .data-table tr.row-warn td { background: #fffbeb; }
+    code, .col-name {
+      background: #f1f5f9;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.86em;
+      color: #334155;
+      font-family: "Cascadia Code", "Consolas", monospace;
+    }
+    .dtype { color: var(--muted); font-size: 0.85em; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .risk-none { background: #ecfdf5; color: #047857; }
+    .risk-low { background: #f0fdf4; color: #15803d; }
+    .risk-med { background: #fffbeb; color: #b45309; }
+    .risk-high { background: #fef2f2; color: #b91c1c; }
+    .tax {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+    .tax-core-parcel { background: #dbeafe; color: #1d4ed8; }
+    .tax-footprint-related { background: #e0e7ff; color: #4338ca; }
+    .tax-external-join { background: #fce7f3; color: #be185d; }
+    .tax-source-missing { background: #fef3c7; color: #b45309; }
+    .tax-api-fillable { background: #ecfdf5; color: #047857; }
+    .delta { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .delta-pos { color: #059669; }
+    .delta-neg { color: #dc2626; }
+    .delta-zero { color: var(--muted); }
+    .src-active {
+      display: inline-block;
+      background: #ecfdf5;
+      color: #047857;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .src-muted {
+      display: inline-block;
+      background: #f1f5f9;
+      color: #64748b;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .repro-list { margin: 0; padding-left: 1.35rem; }
+    .repro-list li { margin: 10px 0; }
+    .repro-list code { font-size: 0.88em; }
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-badge">Santa Clara County · Data Quality</div>
+    <h1>Final Unidata Audit Report</h1>
+    <p class="hero-meta">Snapshot of <code>public.unidata</code> · Generated 2026-05-29 20:16 UTC</p>
+  </header>
+
+  <div class="card">
+    <div class="kpi-row">
+      <div class="kpi kpi-blue"><div class="kpi-val">494,142</div><div class="kpi-lbl">Unidata rows</div><div class="kpi-note">public.unidata</div></div>
+      <div class="kpi kpi-indigo"><div class="kpi-val">494,185</div><div class="kpi-lbl">GPKG rows (APN)</div><div class="kpi-note">Parcel baseline</div></div>
+      <div class="kpi kpi-amber"><div class="kpi-val">-43</div><div class="kpi-lbl">Row delta</div><div class="kpi-note">Unidata − GPKG</div></div>
+      <div class="kpi kpi-teal"><div class="kpi-val">97.34%</div><div class="kpi-lbl">Footprints present</div><div class="kpi-note">13,142 missing</div></div>
+    </div></div>
+
+  <div class="summary">
+    <strong>Executive summary.</strong>
+    Unidata holds <strong>494,142</strong> parcels — aligned with the GPKG baseline
+    (<strong>494,142</strong> unique APN+<code>scity</code> keys).
+    The <strong>43</strong>-row gap vs GPKG APN rows is explained by
+    <strong>43</strong> duplicate GPKG features, not missing inventory.
+    Footprints are <strong>97.34%</strong> populated after
+    <code>California.gpkg</code> spatial backfill (<strong>13,142</strong> still empty).
+    Largest attribute gaps: <code>yearbuilt</code>, <code>scity</code>, <code>address</code>.
+  </div>
+
+  <div class="section-head"><span class="section-num">1</span><h2>Row inventory (Unidata vs GPKG)</h2></div>
+  <div class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th class="">Metric</th><th class="num">Count</th><th class="">Notes</th></tr></thead><tbody><tr><td>GPKG total feature rows</td><td class="num">501,656</td><td>All parcels in county GPKG</td></tr><tr><td>GPKG rows with parcelnumb</td><td class="num">494,185</td><td>Usable APN baseline</td></tr><tr><td>GPKG unique (APN + scity)</td><td class="num">494,142</td><td>After normalization</td></tr><tr><td>GPKG duplicate features</td><td class="num">43</td><td>Extra rows vs unique keys — not missing Unidata parcels</td></tr><tr><td>Unidata rows</td><td class="num">494,142</td><td>Current PostgreSQL snapshot</td></tr><tr><td>Row delta (Unidata − GPKG APN rows)</td><td class="num">-43</td><td>−43 ≈ duplicate GPKG features only</td></tr></tbody></table></div></div>
+
+  <div class="section-head"><span class="section-num">2</span><h2>Column missingness (Step 1 rules)</h2></div>
+  <p class="lead">Present/missing uses Step 1 predicates (e.g. <code>sqft</code>, <code>building_area</code>, <code>yearbuilt</code> treat <strong>0</strong> as missing).</p>
+  <div class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th class="">Column</th><th class="">Type</th><th class="">Taxonomy</th><th class="num">Present</th><th class="num">Missing</th><th class="num">Missing %</th></tr></thead><tbody><tr class="row-risk"><td><code class="col-name">fhszsra</code></td><td><span class="dtype">integer</span></td><td><span class="tax tax-external-join">External join fields</span></td><td class="num">12,001</td><td class="num">482,141</td><td class="num"><span class="badge risk-high">97.57%</span></td></tr><tr><td><code class="col-name">yearbuilt</code></td><td><span class="dtype">integer</span></td><td><span class="tax tax-api-fillable">API-fillable fields</span></td><td class="num">472,581</td><td class="num">21,561</td><td class="num"><span class="badge risk-low">4.36%</span></td></tr><tr><td><code class="col-name">footprints</code></td><td><span class="dtype">ARRAY</span></td><td><span class="tax tax-footprint-related">Footprint-related fields</span></td><td class="num">481,000</td><td class="num">13,142</td><td class="num"><span class="badge risk-low">2.66%</span></td></tr><tr><td><code class="col-name">fhszlra</code></td><td><span class="dtype">integer</span></td><td><span class="tax tax-external-join">External join fields</span></td><td class="num">483,843</td><td class="num">10,299</td><td class="num"><span class="badge risk-low">2.08%</span></td></tr><tr><td><code class="col-name">address</code></td><td><span class="dtype">character varying</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">492,479</td><td class="num">1,663</td><td class="num"><span class="badge risk-low">0.34%</span></td></tr><tr><td><code class="col-name">zoning</code></td><td><span class="dtype">character varying</span></td><td><span class="tax tax-api-fillable">API-fillable fields</span></td><td class="num">493,832</td><td class="num">310</td><td class="num"><span class="badge risk-low">0.06%</span></td></tr><tr><td><code class="col-name">scity</code></td><td><span class="dtype">character varying</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,132</td><td class="num">10</td><td class="num"><span class="badge risk-low">0.00%</span></td></tr><tr><td><code class="col-name">alquist_fault</code></td><td><span class="dtype">boolean</span></td><td><span class="tax tax-external-join">External join fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">building_area</code></td><td><span class="dtype">integer</span></td><td><span class="tax tax-footprint-related">Footprint-related fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">city</code></td><td><span class="dtype">character varying</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">created_at</code></td><td><span class="dtype">timestamp without time zone</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">fldzone</code></td><td><span class="dtype">character varying</span></td><td><span class="tax tax-external-join">External join fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">h3</code></td><td><span class="dtype">character varying</span></td><td><span class="tax tax-api-fillable">API-fillable fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">id</code></td><td><span class="dtype">integer</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">landslide</code></td><td><span class="dtype">boolean</span></td><td><span class="tax tax-external-join">External join fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">lat</code></td><td><span class="dtype">double precision</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">liquefaction</code></td><td><span class="dtype">boolean</span></td><td><span class="tax tax-external-join">External join fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">lon</code></td><td><span class="dtype">double precision</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">parcel</code></td><td><span class="dtype">character varying</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">parcelnumb</code></td><td><span class="dtype">character varying</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">ready</code></td><td><span class="dtype">boolean</span></td><td><span class="tax tax-api-fillable">API-fillable fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">sqft</code></td><td><span class="dtype">integer</span></td><td><span class="tax tax-footprint-related">Footprint-related fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr><tr><td><code class="col-name">updated_at</code></td><td><span class="dtype">timestamp without time zone</span></td><td><span class="tax tax-core-parcel">Core parcel fields</span></td><td class="num">494,142</td><td class="num">0</td><td class="num"><span class="badge risk-none">0.00%</span></td></tr></tbody></table></div></div>
+
+  <div class="section-head"><span class="section-num">3</span><h2>Data sources used for backfill</h2></div>
+  <div class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th class="">Status</th><th class="">File</th><th class="">Join method</th><th class="">Fields</th></tr></thead><tbody><tr><td><span class="src-active">Active</span></td><td><strong>ca_santa_clara_parcel_build_opt.gpkg</strong></td><td>parcelnumb + scity</td><td>address, city, scity, lat, lon, sqft, building_area, yearbuilt, zoning</td></tr><tr><td><span class="src-active">Active</span></td><td><strong>California.gpkg</strong></td><td>Parcel polygon ∩ building</td><td>footprints (WKT array)</td></tr><tr><td><span class="src-muted">Skipped</span></td><td>building-polygon.gpkg</td><td>—</td><td>No parcel keys on layer</td></tr><tr><td><span class="src-muted">Skipped</span></td><td>Buildings_Footprints_2D_20260512.geojson</td><td>—</td><td>Not wired to backfill</td></tr></tbody></table></div></div>
+
+  <div class="section-head"><span class="section-num">4</span><h2>Unidata vs GPKG by city (<code>scity</code>)</h2></div>
+  <p class="lead">Cities with the largest row delta or footprint gaps (top 25). Full export: <code>audit_unidata_vs_gpkg.py</code>.</p>
+  <div class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th class="">scity</th><th class="num">Unidata rows</th><th class="num">GPKG rows</th><th class="num">Delta</th><th class="num">Footprints empty</th><th class="num">building_area empty</th></tr></thead><tbody><tr class="row-total"><td><strong>TOTAL</strong></td><td class="num">494,142</td><td class="num">494,185</td><td class="num"><span class="delta">-43</span></td><td class="num">13,142</td><td class="num">—</td></tr><tr><td><strong>SAN JOSE</strong></td><td class="num">253,885</td><td class="num">253,894</td><td class="num"><span class="delta delta-neg">-9</span></td><td class="num">4,002</td><td class="num">0</td></tr><tr><td><strong>(NULL)</strong></td><td class="num">10</td><td class="num">1,929</td><td class="num"><span class="delta delta-neg">-1,919</span></td><td class="num">6</td><td class="num">0</td></tr><tr><td><strong>NAN</strong></td><td class="num">1,915</td><td class="num">0</td><td class="num"><span class="delta delta-pos">+1,915</span></td><td class="num">1,377</td><td class="num">0</td></tr><tr><td><strong>LOS GATOS</strong></td><td class="num">15,371</td><td class="num">15,277</td><td class="num"><span class="delta delta-pos">+94</span></td><td class="num">1,448</td><td class="num">0</td></tr><tr><td><strong>GILROY</strong></td><td class="num">18,063</td><td class="num">18,063</td><td class="num"><span class="delta delta-zero">0</span></td><td class="num">1,371</td><td class="num">0</td></tr><tr><td><strong>MORGAN HILL</strong></td><td class="num">16,770</td><td class="num">16,768</td><td class="num"><span class="delta delta-pos">+2</span></td><td class="num">1,213</td><td class="num">0</td></tr><tr><td><strong>MILPITAS</strong></td><td class="num">20,372</td><td class="num">20,372</td><td class="num"><span class="delta delta-zero">0</span></td><td class="num">511</td><td class="num">0</td></tr><tr><td><strong>LOS ALTOS</strong></td><td class="num">15,987</td><td class="num">15,693</td><td class="num"><span class="delta delta-pos">+294</span></td><td class="num">357</td><td class="num">0</td></tr><tr><td><strong>LOS ALTOS HILLS</strong></td><td class="num">0</td><td class="num">304</td><td class="num"><span class="delta delta-neg">-304</span></td><td class="num">0</td><td class="num">0</td></tr><tr><td><strong>LEXINGTON HILLS</strong></td><td class="num">0</td><td class="num">94</td><td class="num"><span class="delta delta-neg">-94</span></td><td class="num">0</td><td class="num">0</td></tr></tbody></table></div></div>
+
+  <div class="section-head"><span class="section-num">5</span><h2>Flood zone (<code>fldzone</code>) — top values</h2></div>
+  <p class="lead">After ordered multi-zone aggregation (<code>X | AH</code>, etc.). See <code>docs/ticket-04-unidata-fldzone-20260522.md</code>.</p>
+  <div class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th class="">fldzone</th><th class="num">Parcels</th></tr></thead><tbody><tr><td><code>D</code></td><td class="num">226,345</td></tr><tr><td><code>X</code></td><td class="num">218,007</td></tr><tr><td><code>AO</code></td><td class="num">11,925</td></tr><tr><td><code>AE</code></td><td class="num">8,150</td></tr><tr><td><code>AH</code></td><td class="num">6,740</td></tr><tr><td><code>X | D</code></td><td class="num">6,123</td></tr><tr><td><code>X | AE</code></td><td class="num">2,701</td></tr><tr><td><code>A | D</code></td><td class="num">2,415</td></tr><tr><td><code>X | A</code></td><td class="num">2,287</td></tr><tr><td><code>X | AO</code></td><td class="num">2,125</td></tr><tr><td><code>X | AH</code></td><td class="num">2,024</td></tr><tr><td><code>AO | D</code></td><td class="num">1,431</td></tr><tr><td><code>AE | D</code></td><td class="num">1,261</td></tr><tr><td><code>A</code></td><td class="num">485</td></tr><tr><td><code>AH | D</code></td><td class="num">244</td></tr><tr><td><code>AH | AO</code></td><td class="num">241</td></tr><tr><td><code>X | A | D</code></td><td class="num">161</td></tr><tr><td><code>X | AE | D</code></td><td class="num">159</td></tr><tr><td><code>AO | A</code></td><td class="num">112</td></tr><tr><td><code>A | AE</code></td><td class="num">110</td></tr></tbody></table></div></div>
+
+  <div class="section-head"><span class="section-num">6</span><h2>How to reproduce</h2></div>
+  <div class="card repro-card">
+    <ul class="repro-list">
+      <li><code>py -3 tools/reporting/final_unidata_audit_report.py</code> — this report</li>
+      <li><code>py -3 tools/audits/field_missingness_classification.py</code> — Step 1 detail</li>
+      <li><code>py -3 tools/audits/audit_unidata_vs_gpkg.py</code> — city-level CSV/HTML</li>
+      <li><code>py -3 tools/audits/enrich_unidata_from_gpkg.py --apply --with-footprints</code> — backfill</li>
+    </ul>
+  </div>
+  <footer>
+    Audit_unidata · PostgreSQL <code>parcelz.public.unidata</code> ·
+    Cloud SQL proxy <code>127.0.0.1:5432</code> when using default config
+  </footer>
+</div>
+</body>
+</html>
