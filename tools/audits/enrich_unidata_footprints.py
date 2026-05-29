@@ -52,14 +52,23 @@ def _positive_overlap(parcel_geom, building_geom) -> bool:
     return not inter.is_empty and inter.area > 0
 
 
-def load_building_geoms(gpkg_path: Path, layer: str, bbox: tuple[float, float, float, float]):
-    print(f"Reading buildings from {gpkg_path.name} ...")
-    gdf = pyogrio.read_dataframe(gpkg_path, layer=layer, bbox=bbox)
+def load_building_geoms(
+    source_path: Path,
+    layer: str | None,
+    bbox: tuple[float, float, float, float] | None,
+):
+    print(f"Reading buildings from {source_path.name} ...")
+    kwargs: dict = {}
+    if layer:
+        kwargs["layer"] = layer
+    if bbox is not None:
+        kwargs["bbox"] = bbox
+    gdf = pyogrio.read_dataframe(source_path, **kwargs)
     gdf = gdf[~gdf.geometry.is_empty & gdf.geometry.notna()].copy()
     geoms = [_valid_geom(g) for g in gdf.geometry]
     keep = [i for i, g in enumerate(geoms) if g is not None]
     geoms = [geoms[i] for i in keep]
-    print(f"  {len(geoms):,} building polygons in bbox")
+    print(f"  {len(geoms):,} building polygons loaded")
     tree = STRtree(geoms)
     return geoms, tree
 
@@ -120,23 +129,41 @@ def apply_batch(conn: psycopg.Connection, schema: str, table: str, updates: list
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Fill missing unidata footprints from building GPKG.")
-    p.add_argument("--footprint-gpkg", type=Path, default=_repo_root() / "data" / "California.gpkg")
-    p.add_argument("--layer", default="California")
-    p.add_argument("--bbox", nargs=4, type=float, default=DEFAULT_SCC_BBOX, metavar=("MINX", "MINY", "MAXX", "MAXY"))
+    p = argparse.ArgumentParser(description="Fill missing unidata footprints from building GPKG/GeoJSON.")
+    p.add_argument(
+        "--footprint-source",
+        type=Path,
+        default=_repo_root() / "data" / "California.gpkg",
+        help="Building polygon file (.gpkg or .geojson).",
+    )
+    p.add_argument("--layer", default=None, help="GPKG layer name (default: California for .gpkg).")
+    p.add_argument(
+        "--bbox",
+        nargs=4,
+        type=float,
+        default=None,
+        metavar=("MINX", "MINY", "MAXX", "MAXY"),
+        help="Clip buildings to bbox (default: SCC clip for California.gpkg only).",
+    )
     p.add_argument("--db-schema", default="public")
     p.add_argument("--db-table", default="unidata")
     p.add_argument("--batch-size", type=int, default=500)
     p.add_argument("--apply", action="store_true")
     args = p.parse_args()
 
-    gpkg_path = Path(args.footprint_gpkg)
-    if not gpkg_path.is_absolute():
-        gpkg_path = (_repo_root() / gpkg_path).resolve()
-    if not gpkg_path.is_file():
-        raise SystemExit(f"GPKG not found: {gpkg_path}")
+    source_path = Path(args.footprint_source)
+    if not source_path.is_absolute():
+        source_path = (_repo_root() / source_path).resolve()
+    if not source_path.is_file():
+        raise SystemExit(f"Building source not found: {source_path}")
 
-    building_geoms, tree = load_building_geoms(gpkg_path, args.layer, tuple(args.bbox))
+    layer = args.layer
+    bbox = tuple(args.bbox) if args.bbox else None
+    if source_path.suffix.lower() == ".gpkg":
+        layer = layer or "California"
+        bbox = bbox if bbox is not None else DEFAULT_SCC_BBOX
+
+    building_geoms, tree = load_building_geoms(source_path, layer, bbox)
 
     print("Loading missing parcels from Unidata ...")
     conn = psycopg.connect(**DEFAULT_DB_CONFIG)

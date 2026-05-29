@@ -34,6 +34,8 @@ from field_missingness_classification import (  # noqa: E402
     taxonomy_title,
 )
 
+UNIDATA_VERSION = "v2.3"
+
 
 def _esc(s: object) -> str:
     return html_module.escape("" if s is None else str(s))
@@ -336,7 +338,7 @@ def build_html(
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Final Unidata Audit Report</title>
+  <title>Final Unidata Audit Report · {UNIDATA_VERSION}</title>
   <style>
     :root {{
       --bg: #eef2f7;
@@ -557,9 +559,9 @@ def build_html(
 <body>
 <div class="wrap">
   <header class="hero">
-    <div class="hero-badge">Santa Clara County · Data Quality</div>
-    <h1>Final Unidata Audit Report</h1>
-    <p class="hero-meta">Snapshot of <code>public.unidata</code> · Generated {_esc(generated)} UTC</p>
+    <div class="hero-badge">Santa Clara County · Data Quality · {UNIDATA_VERSION}</div>
+    <h1>Final Unidata Audit Report · {UNIDATA_VERSION}</h1>
+    <p class="hero-meta">Snapshot of <code>public.unidata</code> ({UNIDATA_VERSION}) · Generated {_esc(generated)} UTC</p>
   </header>
 
   <div class="card">{kpis}</div>

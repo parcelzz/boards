@@ -1,11 +1,11 @@
 column,data_type,taxonomy,present,missing,missing_pct
 fhszsra,integer,external_join,12001,482141,97.5713
 yearbuilt,integer,api_fillable,472581,21561,4.3633
-footprints,ARRAY,footprint_related,476351,17791,3.6004
+footprints,ARRAY,footprint_related,481000,13142,2.6596
 fhszlra,integer,external_join,483843,10299,2.0842
-scity,character varying,core_parcel,492213,1929,0.3904
-address,character varying,core_parcel,492473,1669,0.3378
+address,character varying,core_parcel,492479,1663,0.3365
 zoning,character varying,api_fillable,493832,310,0.0627
+scity,character varying,core_parcel,494132,10,0.002
 alquist_fault,boolean,external_join,494142,0,0.0
 building_area,integer,footprint_related,494142,0,0.0
 city,character varying,core_parcel,494142,0,0.0

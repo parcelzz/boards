@@ -1,0 +1,63 @@
+fldzone,parcel_count
+D,226345
+X,218007
+AO,11925
+AE,8150
+AH,6740
+X | D,6123
+X | AE,2701
+A | D,2415
+X | A,2287
+X | AO,2125
+X | AH,2024
+AO | D,1431
+AE | D,1261
+A,485
+AH | D,244
+AH | AO,241
+X | A | D,161
+X | AE | D,159
+AO | A,112
+A | AE,110
+X | AO | AE,110
+AO | AE,107
+X | AH | AO,100
+AH | A,98
+X | A | AE,91
+X | AO | A,73
+A | AE | D,72
+X | AH | A,59
+AO | AE | D,54
+X | AO | D,53
+AH | AE,38
+AO | A | D,33
+AE | VE,27
+X | AH | AE,26
+X | A | AE | D,19
+X | AO | AE | D,16
+AH | AO | D,15
+VE,12
+X | AH | A | AE,12
+X | AH | D,10
+X | AO | A | AE,9
+AH | A | D,7
+A | AE | VE,6
+X | AH | AO | A,6
+AH | AE | D,5
+AO | A | AE | D,5
+X | AO | A | D,5
+AH | AO | A,4
+AH | A | AE,3
+X | AH | A | D,3
+X | AH | AO | AE,3
+AH | A | AE | D,2
+AH | AO | AE,2
+AO | A | AE,2
+X | A | AE | VE | D,2
+AH | AO | A | D,1
+X | AH | A | AE | D,1
+X | AH | AE | D,1
+X | AH | AO | A | D,1
+X | AH | AO | AE | D,1
+X | AH | AO | D,1
+X | AO | A | AE | D,1
