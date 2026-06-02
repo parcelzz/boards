@@ -1,0 +1,51 @@
+group,data_item,parcelz_tier,used_in_parcelz,target_table,unidata_column_or_note,authoritative_source,join_key,present_pct,missing_count,rows_total,in_unidata_today,etl_status,api_owner,etl_owner,notes
+MLS Property Listing,MLS Status,Tier 1,,mls_listings,,MLS,listing_id / address+APN,TBD,TBD,494142,No,Not started,Calvin,Marwin + MLS vendor,New table; daily feed
+MLS Property Listing,Listing Price,Tier 1,,mls_listings,,MLS,listing_id,TBD,TBD,494142,No,Not started,Calvin,Marwin + MLS vendor,New table
+MLS Property Listing,Sold Price,Tier 1,,mls_listings,,MLS,listing_id / sale record,TBD,TBD,494142,No,Not started,Calvin,Marwin + MLS vendor,Historical + active listings
+MLS Property Listing,Listing Type,Tier 1,,mls_listings,,MLS,listing_id,TBD,TBD,494142,No,Not started,Calvin,Marwin + MLS vendor,
+MLS Property Listing,Days on Market,Tier 1,,mls_listings,,MLS,listing_id,TBD,TBD,494142,No,Not started,Calvin,Marwin + MLS vendor,Derived from list date if needed
+Property Identification,Address,Tier 1,Yes,public.unidata,address,Assessor / County Parcels,APN + scity,99.66,1663,494142,Yes,Done (May 2026),Calvin,Marwin,County Parcels GeoJSON + GPKG
+Property Identification,APN,Tier 1,Yes,public.unidata,parcelnumb,Assessor,APN + scity,100.00,0,494142,Yes,Done,Calvin,Marwin,Core key
+Property Identification,City,Tier 1,,public.unidata,city,Assessor,APN,100.00,0,494142,Yes,Done,Calvin,Marwin,Distinct from scity (situs)
+Property Identification,Zip Code,Tier 1,,parcel_attributes,zip,Assessor / USPS geocoder,APN + address,TBD,TBD,494142,No,Not started,Calvin,Marwin,Not in unidata today
+Property Identification,Jurisdiction,Tier 2,,parcel_attributes,jurisdiction,Assessor / County,APN,Partial,TBD,494142,Partial,Evaluate,Calvin,Marwin,In county Parcels GeoJSON as jurisdiction
+Property Identification,County,Tier 2,,parcel_attributes,county,Assessor / County,APN,100.00,0,494142,Implicit,Done,Calvin,Marwin,Santa Clara only in scope
+Property Identification,State,Tier 2,,parcel_attributes,state,Assessor,APN,100.00,0,494142,Implicit,Done,Calvin,Marwin,CA
+Property Characteristics,Building Area,Tier 1,Yes,public.unidata,building_area,Assessor / GPKG,APN + scity,100.00,0,494142,Yes,Done,Calvin,Marwin,Step 1: 0 treated as missing
+Property Characteristics,Lot Size (sqft),Tier 1,Yes,public.unidata,sqft,Assessor / GPKG,APN + scity,100.00,0,494142,Yes,Done,Calvin,Marwin,Column sqft
+Property Characteristics,Total Acres,Tier 2,,parcel_attributes,total_acres,Assessor / County,APN + scity,TBD,TBD,494142,No,Not started,Calvin,Marwin,Derive from sqft or assessor
+Property Characteristics,Property Type,Tier 1,,parcel_attributes,property_type,Assessor,APN + scity,TBD,TBD,494142,No,Not started,Calvin,Marwin,Assessor use code / property class
+Property Characteristics,Year Built,Tier 1,,public.unidata,yearbuilt,Assessor bulk characteristic file,APN + scity,95.64,21561,494142,Yes,Gap — Assessor pilot,Calvin,Marwin,Not in county Parcels GeoJSON
+Property Characteristics,Beds / Baths,Tier 1,,parcel_attributes,beds_baths,Assessor / MLS,APN,TBD,TBD,494142,No,Not started,Calvin,Marwin,Assessor and/or MLS
+Valuation & Comps,Estimated Value (AVM),Tier 1,,parcel_valuation,avm,DERIVED (internal/MLS),APN,TBD,TBD,494142,No,Not started,Calvin,ENG + Marwin,After MLS + parcel base
+Valuation & Comps,Est. Price / Sq.Ft.,Tier 1,,parcel_valuation,price_per_sqft,DERIVED,APN,TBD,TBD,494142,No,Not started,Calvin,ENG,Derived from AVM + sqft
+Valuation & Comps,Comps,Tier 1,,parcel_comps,comps,MLS + AVM,APN + radius,TBD,TBD,494142,No,Not started,Calvin,ENG,Not a single column
+Valuation & Comps,Similar Listings,Tier 1,,parcel_comps,similar_listings,MLS,APN,TBD,TBD,494142,No,Not started,Calvin,ENG,
+Valuation & Comps,Recently Sold Homes,Tier 1,,parcel_comps,recent_sold,MLS + AVM,APN + market,TBD,TBD,494142,No,Not started,Calvin,ENG,
+Valuation & Comps,Last Sold Price,Tier 1,,mls_sales / parcel_comps,last_sold_price,MLS + AVM,APN,TBD,TBD,494142,No,Not started,Calvin,Marwin + ENG,
+Property Media,Exterior Images,Tier 1,,mls_media,exterior_images,MLS,listing_id,TBD,TBD,494142,No,Not started,Calvin,Marwin,URLs not blobs in DB
+Property Media,Interior Images,Tier 1,,mls_media,interior_images,MLS,listing_id,TBD,TBD,494142,No,Not started,Calvin,Marwin,
+Neighbor Insight,School - Name / Link,Tier 1,,parcel_schools,school_name,GreatSchools / NCES,lat/lon or address,TBD,TBD,494142,No,Not started,Calvin,Marwin,Spatial join
+Neighbor Insight,School - Distance,Tier 1,,parcel_schools,school_distance,GreatSchools,lat/lon,TBD,TBD,494142,No,Not started,Calvin,Marwin,
+Neighbor Insight,School - Rating,Tier 1,,parcel_schools,school_rating,GreatSchools,lat/lon,TBD,TBD,494142,No,Not started,Calvin,Marwin,
+Neighbor Insight,Safety / Crime,Tier 1,,parcel_crime,crime_metrics,LexisNexis / CoreLogic,lat/lon or tract,TBD,TBD,494142,No,Not started,Calvin,Marwin,License + API cost
+Due Diligence - Zoning,Zoning,Tier 1,Yes,public.unidata,zoning,Assessor / County Planning,APN + scity,99.94,310,494142,Yes,Done,Calvin,Marwin,GPKG + planning hub
+Due Diligence - Zoning,General Plan,Tier 1,Yes,parcel_zoning,general_plan,County Planning,APN / geometry,TBD,TBD,494142,No,Not started,Calvin,Marwin,Not in unidata; planning hub GIS
+Due Diligence - Zoning,Floor Area Limit,Tier 1,Yes,parcel_zoning,floor_area_limit,Assessor / County,APN + zoning,TBD,TBD,494142,No,Not started,Calvin,Marwin,Regulatory layer
+Due Diligence - Zoning,Height Limit,Tier 1,Yes,parcel_zoning,height_limit,Assessor / County,APN + zoning,TBD,TBD,494142,No,Not started,Calvin,Marwin,
+Due Diligence - Zoning,Density,Tier 1,,parcel_zoning,density,Assessor / County,APN + zoning,TBD,TBD,494142,No,Not started,Calvin,Marwin,
+Due Diligence - Environmental,Flood,Tier 1,Yes,public.unidata,fldzone,FEMA NFHL / County GIS,geometry / APN,100.00,0,494142,Yes,Done,Calvin,Marwin,Ordered multi-zone; ticket-04 verified
+Due Diligence - Environmental,Fire,Tier 1,,parcel_hazards,fire_zone,State FHSZ,geometry,TBD,TBD,494142,No,Not started,Calvin,Marwin,Separate from fldzone
+Due Diligence - Environmental,Earthquake,Tier 1,Yes,public.unidata,(hazard flags),USGS / County,geometry,100.00,0,494142,Partial,Review semantics,Calvin,Marwin,No dedicated earthquake column
+Due Diligence - Environmental,Fault,Tier 1,Yes,public.unidata,alquist_fault,USGS / County,geometry,100.00,0,494142,Yes,Review semantics,Calvin,Marwin,Boolean; NULL vs FALSE meaning
+Due Diligence - Environmental,Landslide,Tier 1,Yes,public.unidata,landslide,USGS / County,geometry,100.00,0,494142,Yes,Review semantics,Calvin,Marwin,
+Due Diligence - Environmental,Liquefaction,Tier 1,Yes,public.unidata,liquefaction,USGS / County,geometry,100.00,0,494142,Yes,Review semantics,Calvin,Marwin,
+Due Diligence - Environmental,fhszsra (SRA),Tier 1,,public.unidata,fhszsra,FEMA / State FHSZ,geometry,2.43,482141,494142,Yes,Gap — source decision,Calvin,Marwin,Product call required
+Investment & Development,Loan Interest,Tier 1,,proforma_inputs,loan_interest,AlphaX internal,N/A,N/A,N/A,494142,No,Not started,Calvin,AlphaX,Not parcel-ingest
+Investment & Development,Cost Base,Tier 1,,proforma_inputs,cost_base,AlphaX internal,APN,N/A,N/A,494142,No,Not started,Calvin,AlphaX,
+Investment & Development,Development Strategy,Tier 1,,proforma_inputs,dev_strategy,AlphaX internal,APN,N/A,N/A,494142,No,Not started,Calvin,AlphaX,
+Parcel Geometry,Parcel polygon,Tier 1,Yes,public.unidata,parcel,County Parcels / GPKG,APN,100.00,0,494142,Yes,Done,Calvin,Marwin,WKT polygon
+Parcel Geometry,Footprints,Tier 1,Yes,public.unidata,footprints,County Buildings 2D + Microsoft,parcel geometry,97.34,13142,494142,Yes,Done (May 2026),Calvin,Marwin,County LiDAR +4.6k May 2026
+Parcel Geometry,Lat / Lon,Tier 1,Yes,public.unidata,lat / lon,Assessor / GPKG,APN,100.00,0,494142,Yes,Done,Calvin,Marwin,
+Parcel Geometry,Situs city (scity),Tier 1,Yes,public.unidata,scity,County Parcels GeoJSON,APN,99.998,10,494142,Yes,Done (May 2026),Calvin,Marwin,+1919 May 2026
+Parcel Geometry,H3 index,Tier 1,,public.unidata,h3,DERIVED from lat/lon,lat/lon,100.00,0,494142,Yes,Done,Calvin,Marwin,Present; verify app usage
