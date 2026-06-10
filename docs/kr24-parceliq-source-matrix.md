@@ -2,7 +2,7 @@
 
 > **Summary:** Priority data items for ParcelIQ KR 2.4 — target tables, authoritative sources, join keys, Unidata coverage (May 2026 post re-audit), and ETL status.  
 > **Updated:** 2026-05-29 · **Author:** Unidata audit team · **Status:** Draft for review with ENGs + Calvin  
-> **Machine-readable:** [kr24-parceliq-source-matrix.csv](kr24-parceliq-source-matrix.csv)
+> **Full catalog:** [parceliq-catalog-coverage.csv](parceliq-catalog-coverage.csv) · **Coverage HTML:** `outputs/parceliq_coverage/report.html`
 
 ---
 
