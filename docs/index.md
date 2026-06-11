@@ -46,6 +46,21 @@ Generate Step 4–5 Markdown from audit outputs:
 
 ---
 
+## KR 2.4 — ParcelIQ
+
+| Document | Summary | Status | Updated |
+|----------|---------|--------|---------|
+| [kr24-data-sources-and-gaps.md](kr24-data-sources-and-gaps.md) | **Start here:** sources, coverage gaps, blockers, ingest order (before schema/pull) | Live | 2026-05-29 |
+| [parceliq-catalog-coverage.csv](parceliq-catalog-coverage.csv) | Full catalog (~94 items): coverage type, target table/column, column + join coverage | Live | 2026-05-29 |
+| [kr24-parceliq-source-matrix.md](kr24-parceliq-source-matrix.md) | Tier 1 subset: target tables, sources, join keys, ETL status | Draft | 2026-05-29 |
+| [kr24-parceliq-source-matrix.csv](kr24-parceliq-source-matrix.csv) | Machine-readable Tier 1 matrix (coverage refreshed from report) | Draft | 2026-05-29 |
+| [kr24-schema-proposal.md](kr24-schema-proposal.md) | Extension table DDL direction for ENGs + Calvin API read path | Draft | 2026-05-29 |
+| [runbooks/parceliq-etl-runbooks.md](runbooks/parceliq-etl-runbooks.md) | Per-pipeline source → script → QC | Draft | 2026-05-29 |
+
+**Coverage report (HTML):** `outputs/parceliq_coverage/report.html` — `py -3 tools/reporting/parceliq_coverage_report.py`
+
+---
+
 ## Tickets
 
 | Document | Summary | Status | Updated |
